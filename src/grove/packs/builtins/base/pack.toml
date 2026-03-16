@@ -1,0 +1,13 @@
+# Base Pack: GROVE context system layout and conventions.
+# Minimal metadata; templates added in Phase 6.
+
+id = "base"
+name = "Base Pack"
+version = "0.1.0"
+depends_on = []
+compatible_with = []
+activates_when = []
+
+[contributes]
+templates = []
+setup_questions = []
