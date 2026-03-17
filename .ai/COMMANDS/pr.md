@@ -7,7 +7,7 @@ argument-hint: [optional-plan-path]
 
 ## Objective
 
-Create or update a pull request with a clear title/body that explains what changed, why, and how it was validated.
+Create or update a pull request with a clear title/body that explains what changed, why, and how it was validated. Then monitor CI until all checks pass, fix any failures on the branch, and merge—do not hand off with failing checks unless the user explicitly accepts or a fix requires user input.
 
 Reference guidance:
 - `.ai/COMMANDS/_shared/story-writing.md`
@@ -70,6 +70,13 @@ Decision rule after checks complete:
   - fix on the same branch
   - re-run validation (`.ai/COMMANDS/validate.md`)
   - push and continue polling until green
+
+### 6. Completion: do not hand off with failing checks
+
+- **This command is not complete** until either (a) the PR is merged, or (b) the user explicitly tells you to stop or to accept failing checks.
+- If CI fails, **you must fix** on the branch, re-validate, push, and poll again. Do not present "options" and stop; implement the fix.
+- **Exception:** Only if a fix truly requires user input (e.g. merge conflict with main, or an explicit product/design choice), report the blocker and what you need from the user; then stop.
+- When reporting a blocker, state clearly: "PR command incomplete: [reason]. I need [X] from you before I can continue."
 
 ## Fallback PR Body Format
 

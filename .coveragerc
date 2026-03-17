@@ -2,7 +2,7 @@
 # without full headless TUI tests. Rest matches pyproject [tool.coverage].
 [run]
 source = src/grove
-omit = tests/*, src/grove/tui/screens/*
+omit = tests/*
 
 [report]
 fail_under = 80

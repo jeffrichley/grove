@@ -33,6 +33,7 @@ dev = [
     "docstr-coverage>=2.3",
     "pre-commit>=4.0",
     "pytest-xdist>=3.8.0",
+    "pytest-asyncio>=0.24.0",
 ]
 
 [build-system]
@@ -46,6 +47,7 @@ packages = ["src/grove"]
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-p drill_sergeant"
+asyncio_mode = "auto"
 markers = [
     "unit: Unit tests that test individual components in isolation",
     "integration: Integration tests that test multiple components together",
