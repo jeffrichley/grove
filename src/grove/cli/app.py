@@ -49,7 +49,7 @@ def _callback(
 
 
 def _run_init_tui(root: Path) -> None:
-    """Launch interactive TUI for grove init.
+    """Launch interactive TUI for grove init (first-time wizard).
 
     If .grove/manifest.toml exists, prefill state from it (packs, install root,
     core options) so Recommended packs and Core install show previous choices.
@@ -59,7 +59,20 @@ def _run_init_tui(root: Path) -> None:
     """
     manifest_path = root / ".grove" / "manifest.toml"
     state = setup_state_from_manifest(manifest_path, root)
-    GroveInitApp(state).run()
+    GroveInitApp(state, mode="init").run()
+
+
+def _run_manage_tui(root: Path) -> None:
+    """Launch manage TUI: dashboard with installed packs, sync status, actions.
+
+    Requires .grove/manifest.toml to exist (caller must check).
+
+    Args:
+        root: Resolved project root directory.
+    """
+    manifest_path = root / ".grove" / "manifest.toml"
+    state = setup_state_from_manifest(manifest_path, root)
+    GroveInitApp(state, mode="manage").run()
 
 
 def _run_init_flag_based(
@@ -216,7 +229,11 @@ def init(
         raise typer.Exit(1) from e
 
     if pack is None and sys.stdout.isatty():
-        _run_init_tui(root)
+        manifest_path = root / ".grove" / "manifest.toml"
+        if manifest_path.exists():
+            _run_manage_tui(root)
+        else:
+            _run_init_tui(root)
         return
 
     try:
@@ -274,6 +291,50 @@ def sync(
         typer.echo("No managed files to update.")
 
 
+def _run_configure(root: Path) -> None:
+    """Configure entry: init TUI when no manifest, manage TUI when manifest exists.
+
+    Args:
+        root: Resolved project root directory.
+    """
+    manifest_path = root / ".grove" / "manifest.toml"
+    if manifest_path.exists():
+        _run_manage_tui(root)
+    else:
+        _run_init_tui(root)
+
+
+@app.command()
+def configure(
+    root: Annotated[
+        Path | None,
+        typer.Option("--root", "-r", help="Project root (default: current directory)."),
+    ] = None,
+) -> None:
+    """Open Grove setup: init wizard or manage dashboard by manifest presence.
+
+    With no .grove/manifest.toml, runs the full init TUI. With an existing
+    manifest, runs the manage TUI (installed packs, add pack, re-run analysis,
+    full re-setup).
+
+    Args:
+        root: Project root directory (default: current directory).
+    """
+    try:
+        root = _resolve_root(root)
+    except GroveError as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1) from e
+    if not sys.stdout.isatty():
+        typer.echo(
+            "Configure is interactive; run in a terminal, or use "
+            "'grove init --pack' for non-interactive init.",
+            err=True,
+        )
+        raise typer.Exit(1)
+    _run_configure(root)
+
+
 @app.command()
 def add(
     pack: Annotated[str, typer.Argument(help="Pack id to add (e.g. 'python').")],
@@ -307,6 +368,32 @@ def add(
 
     save_manifest(manifest_path, updated)
     typer.echo(f"Added pack {pack}.")
+
+
+@app.command()
+def manage(
+    root: Annotated[
+        Path | None,
+        typer.Option("--root", "-r", help="Project root (default: current directory)."),
+    ] = None,
+) -> None:
+    """Alias for configure: open init or manage TUI by manifest presence.
+
+    Args:
+        root: Project root directory (default: current directory).
+    """
+    try:
+        root = _resolve_root(root)
+    except GroveError as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1) from e
+    if not sys.stdout.isatty():
+        typer.echo(
+            "Manage is interactive; run in a terminal.",
+            err=True,
+        )
+        raise typer.Exit(1)
+    _run_configure(root)
 
 
 def main() -> None:
