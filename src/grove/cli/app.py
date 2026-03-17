@@ -10,6 +10,7 @@ import typer
 
 from grove.analyzer import analyze
 from grove.core import apply, compose, save_manifest
+from grove.core.add import add_pack
 from grove.core.file_ops import ApplyOptions
 from grove.core.manifest import MANIFEST_SCHEMA_VERSION
 from grove.core.models import (
@@ -19,7 +20,14 @@ from grove.core.models import (
     ManifestState,
     ProjectSection,
 )
-from grove.core.registry import discover_packs
+from grove.core.registry import discover_packs, get_builtin_pack_roots_and_packs
+from grove.core.sync import run_sync
+from grove.exceptions import (
+    GroveConfigError,
+    GroveError,
+    GroveManifestError,
+    GrovePackError,
+)
 from grove.tui import GroveInitApp
 from grove.tui.state import setup_state_from_manifest
 
@@ -41,7 +49,7 @@ def _callback(
 
 
 def _run_init_tui(root: Path) -> None:
-    """Launch interactive TUI for grove init.
+    """Launch interactive TUI for grove init (first-time wizard).
 
     If .grove/manifest.toml exists, prefill state from it (packs, install root,
     core options) so Recommended packs and Core install show previous choices.
@@ -51,7 +59,20 @@ def _run_init_tui(root: Path) -> None:
     """
     manifest_path = root / ".grove" / "manifest.toml"
     state = setup_state_from_manifest(manifest_path, root)
-    GroveInitApp(state).run()
+    GroveInitApp(state, mode="init").run()
+
+
+def _run_manage_tui(root: Path) -> None:
+    """Launch manage TUI: dashboard with installed packs, sync status, actions.
+
+    Requires .grove/manifest.toml to exist (caller must check).
+
+    Args:
+        root: Resolved project root directory.
+    """
+    manifest_path = root / ".grove" / "manifest.toml"
+    state = setup_state_from_manifest(manifest_path, root)
+    GroveInitApp(state, mode="manage").run()
 
 
 def _run_init_flag_based(
@@ -67,7 +88,7 @@ def _run_init_flag_based(
         dry_run: If True, do not write files.
 
     Raises:
-        Exit: When a pack id is not found in the registry (typer.Exit).
+        GrovePackError: When a pack id is not found in the registry.
     """
     builtins_ref = files("grove.packs") / "builtins"
     with as_file(builtins_ref) as builtins_path:
@@ -79,11 +100,7 @@ def _run_init_flag_based(
     for pid in selected:
         if pid not in pack_roots:
             available = sorted(pack_roots.keys())
-            typer.echo(
-                f"Error: pack '{pid}' not found; available: {available}",
-                err=True,
-            )
-            raise typer.Exit(1)
+            raise GrovePackError(f"pack '{pid}' not found; available: {available}")
 
     profile = analyze(root)
     install_root = root / ".grove"
@@ -149,6 +166,26 @@ def _analysis_summary(profile: object) -> str:
     return ", ".join(parts) if parts else ""
 
 
+def _resolve_root(root: Path | None) -> Path:
+    """Resolve and validate project root; raise if not a directory.
+
+    Args:
+        root: Project root or None for cwd.
+
+    Returns:
+        Resolved absolute Path to project root.
+
+    Raises:
+        GroveConfigError: When path is not a directory.
+    """
+    if root is None:
+        root = Path.cwd()
+    root = Path(root).resolve()
+    if not root.is_dir():
+        raise GroveConfigError(f"root is not a directory: {root}")
+    return root
+
+
 @app.command()
 def init(
     root: Annotated[
@@ -183,20 +220,186 @@ def init(
         dry_run: If True, do not write files.
 
     Raises:
-        Exit: On validation error (e.g. root not a dir, unknown pack) via typer.Exit.
+        typer.Exit: On validation error (e.g. root not a dir, unknown pack).
     """
-    if root is None:
-        root = Path.cwd()
-    root = Path(root).resolve()
-    if not root.is_dir():
-        typer.echo(f"Error: root is not a directory: {root}", err=True)
-        raise typer.Exit(1)
+    try:
+        root = _resolve_root(root)
+    except GroveError as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1) from e
 
     if pack is None and sys.stdout.isatty():
-        _run_init_tui(root)
+        manifest_path = root / ".grove" / "manifest.toml"
+        if manifest_path.exists():
+            _run_manage_tui(root)
+        else:
+            _run_init_tui(root)
         return
 
-    _run_init_flag_based(root, pack, dry_run)
+    try:
+        _run_init_flag_based(root, pack, dry_run)
+    except GroveError as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1) from e
+
+
+@app.command()
+def sync(
+    root: Annotated[
+        Path | None,
+        typer.Option("--root", "-r", help="Project root (default: current directory)."),
+    ] = None,
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run",
+            help="Do not write files; only report what would be written.",
+        ),
+    ] = False,
+) -> None:
+    """Re-render managed files from current templates and profile.
+
+    Requires an existing Grove manifest (.grove/manifest.toml). Writes only
+    paths listed in the manifest; does not add or remove files from the manifest.
+
+    Args:
+        root: Project root directory (default: current directory).
+        dry_run: If True, do not write files; report what would be written.
+
+    Raises:
+        typer.Exit: When manifest is missing or invalid.
+    """
+    try:
+        root = _resolve_root(root)
+        manifest_path = root / ".grove" / "manifest.toml"
+        if not manifest_path.exists():
+            raise GroveManifestError("No Grove manifest; run 'grove init' first.")
+        written = run_sync(root, dry_run=dry_run)
+    except GroveError as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1) from e
+
+    if dry_run:
+        typer.echo("Dry run: would write:")
+        for p in written:
+            typer.echo(f"  {p}")
+    elif written:
+        typer.echo("Updated:")
+        for p in written:
+            typer.echo(f"  {p}")
+    else:
+        typer.echo("No managed files to update.")
+
+
+def _run_configure(root: Path) -> None:
+    """Configure entry: init TUI when no manifest, manage TUI when manifest exists.
+
+    Args:
+        root: Resolved project root directory.
+    """
+    manifest_path = root / ".grove" / "manifest.toml"
+    if manifest_path.exists():
+        _run_manage_tui(root)
+    else:
+        _run_init_tui(root)
+
+
+@app.command()
+def configure(
+    root: Annotated[
+        Path | None,
+        typer.Option("--root", "-r", help="Project root (default: current directory)."),
+    ] = None,
+) -> None:
+    """Open Grove setup: init wizard or manage dashboard by manifest presence.
+
+    With no .grove/manifest.toml, runs the full init TUI. With an existing
+    manifest, runs the manage TUI (installed packs, add pack, re-run analysis,
+    full re-setup).
+
+    Args:
+        root: Project root directory (default: current directory).
+
+    Raises:
+        typer.Exit: On root resolution error or when not run in a TTY.
+    """
+    try:
+        root = _resolve_root(root)
+    except GroveError as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1) from e
+    if not sys.stdout.isatty():
+        typer.echo(
+            "Configure is interactive; run in a terminal, or use "
+            "'grove init --pack' for non-interactive init.",
+            err=True,
+        )
+        raise typer.Exit(1)
+    _run_configure(root)
+
+
+@app.command()
+def add(
+    pack: Annotated[str, typer.Argument(help="Pack id to add (e.g. 'python').")],
+    root: Annotated[
+        Path | None,
+        typer.Option("--root", "-r", help="Project root (default: current directory)."),
+    ] = None,
+) -> None:
+    """Add a pack to an existing Grove installation.
+
+    Requires an existing manifest (.grove/manifest.toml). Resolves
+    dependencies and updates the manifest and generated files.
+
+    Args:
+        pack: Pack id to install.
+        root: Project root directory (default: current directory).
+
+    Raises:
+        typer.Exit: When manifest is missing or pack not found.
+    """
+    try:
+        root = _resolve_root(root)
+        manifest_path = root / ".grove" / "manifest.toml"
+        if not manifest_path.exists():
+            raise GroveManifestError("No Grove manifest; run 'grove init' first.")
+        pack_roots, packs = get_builtin_pack_roots_and_packs()
+        updated = add_pack(root, manifest_path, pack, pack_roots, packs)
+    except GroveError as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1) from e
+
+    save_manifest(manifest_path, updated)
+    typer.echo(f"Added pack {pack}.")
+
+
+@app.command()
+def manage(
+    root: Annotated[
+        Path | None,
+        typer.Option("--root", "-r", help="Project root (default: current directory)."),
+    ] = None,
+) -> None:
+    """Alias for configure: open init or manage TUI by manifest presence.
+
+    Args:
+        root: Project root directory (default: current directory).
+
+    Raises:
+        typer.Exit: On root resolution error or when not run in a TTY.
+    """
+    try:
+        root = _resolve_root(root)
+    except GroveError as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1) from e
+    if not sys.stdout.isatty():
+        typer.echo(
+            "Manage is interactive; run in a terminal.",
+            err=True,
+        )
+        raise typer.Exit(1)
+    _run_configure(root)
 
 
 def main() -> None:

@@ -119,9 +119,11 @@ def setup_state_from_manifest(
             core_include_scoped_rules=prov.core_include_scoped_rules,
             core_include_memory=prov.core_include_memory,
             core_include_skills_dir=prov.core_include_skills_dir,
+            manifest=manifest,
         )
     return SetupState(
         root=root,
         install_root=root / ".grove",
         selected_pack_ids=[p.id for p in manifest.installed_packs],
+        manifest=manifest,
     )

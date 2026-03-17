@@ -1,0 +1,4 @@
+# CLI commands catch GroveError and raise typer.Exit(1) in except blocks.
+# Darglint does not trace re-raises inside except, so it reports DAR401/DAR402.
+[darglint]
+ignore=DAR401,DAR402

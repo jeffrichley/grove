@@ -29,6 +29,24 @@ GroveBaseScreen > VerticalScroll {
   border: tall $primary;
 }
 
+#manage-content,
+#add-pack-content {
+  width: 70;
+  height: auto;
+  margin: 2 4;
+  padding: 2 3;
+  background: $panel;
+  color: $text;
+  border: tall $primary 40%;
+  border-title-align: left;
+  border-subtitle-align: right;
+}
+
+#manage-content:focus,
+#add-pack-content:focus {
+  border: tall $primary;
+}
+
 /* Step indicator above panel */
 .step-indicator {
   text-style: dim;

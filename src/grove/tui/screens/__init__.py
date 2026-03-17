@@ -10,15 +10,18 @@ from grove.tui.screens.conflicts import (
 )
 from grove.tui.screens.final_review import FinalReviewScreen
 from grove.tui.screens.finish import FinishScreen
+from grove.tui.screens.manage_dashboard import AddPackScreen, ManageDashboardScreen
 from grove.tui.screens.welcome import WelcomeScreen
 
 __all__ = [
+    "AddPackScreen",
     "AnalysisScreen",
     "ComponentsPreviewScreen",
     "ConflictsScreen",
     "FinalReviewScreen",
     "FinishScreen",
     "GroveBaseScreen",
+    "ManageDashboardScreen",
     "WelcomeScreen",
     "get_conflicting_paths",
     "has_conflicts",
