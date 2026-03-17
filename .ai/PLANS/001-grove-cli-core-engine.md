@@ -92,7 +92,7 @@ git show-ref --verify --quiet "refs/heads/${BRANCH_NAME}" \
 - [Pydantic V2](https://docs.pydantic.dev/latest/) — Why: Models for profile, manifest, plan; validation
 - [Typer](https://typer.tiangolo.com/) — Why: CLI structure and flags if using Typer
 - [Textual](https://textual.textualize.io/) — Why: TUI framework for interactive setup and `grove manage` (Screens, Widgets, reactive state). Use for later phase; not required in Phase 1.
-- Grove CLI PRD (when present): `.ai/SPECS/003-grove-cli/PRD.md` — Why: Phase 1 scope, pack model, manifest design
+- Grove CLI PRD (when present): `.ai/SPECS/001-grove-cli/PRD.md` — Why: Phase 1 scope, pack model, manifest design
 - **Grove concept (source of truth):** `docs/concept.md` — Why: Base Pack content and commands must align with the GROVE framework; see below.
 
 ### Grove Concept Alignment (from docs/concept.md)
@@ -146,7 +146,7 @@ Set up Pydantic models and manifest schema so registry, analyzer, and composer c
 
 **Intent Lock**
 
-- Source of truth: This plan (Phase 1), `.ai/RULES.md` (typing, no silent fallbacks). Manifest schema is defined in this plan (OUTPUT CONTRACT, Phase 1 tasks); `.ai/SPECS/003-grove-cli/PRD.md` is optional if present.
+- Source of truth: This plan (Phase 1), `.ai/RULES.md` (typing, no silent fallbacks). Manifest schema is defined in this plan (OUTPUT CONTRACT, Phase 1 tasks); `.ai/SPECS/001-grove-cli/PRD.md` is optional if present.
 - Must: All new code under `src/grove/`; models in `core/models.py`; manifest schema versioned and documented
 - Must Not: No unvalidated dicts for manifest or plan; no bare `dict` return types where a model exists
 - Acceptance gates: `just types`, `just lint`, `just test` (tests for model validation and manifest round-trip)

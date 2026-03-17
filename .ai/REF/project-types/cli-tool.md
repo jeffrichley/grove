@@ -1,6 +1,6 @@
 # Project Type: CLI Tool
 
-Use this overlay when working on Lily command UX, output rendering, and operator workflows.
+Use this overlay when working on Grove CLI command UX, output rendering, and operator workflows.
 
 ## Output UX Rules
 

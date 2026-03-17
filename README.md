@@ -6,5 +6,5 @@ Grove is a modular skill framework for AI coding agents that orchestrates the co
 
 - **Setup**: `uv sync --all-groups` (requires [uv](https://docs.astral.sh/uv/)).
 - **Pre-commit** (run once per clone): `just pre-commit-install` (or `uv run pre-commit install` and `uv run pre-commit install --hook-type commit-msg`).
-- **Quality**: `just quality-check` (CI-safe checks only), `just quality` (format + fix + all checks), `just test-cov` (tests with coverage).
+- **Quality**: `just quality-check` (CI-safe, no writes) or `just quality` (format + fix + all checks); `just test-cov` (tests with coverage). Before commit/PR: `just quality && just test`.
 - **Commit**: `just commit` for conventional commits via Commitizen.
