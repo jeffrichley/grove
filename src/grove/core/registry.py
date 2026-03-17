@@ -39,6 +39,23 @@ def discover_packs(builtins_dir: Path | None = None) -> list[PackManifest]:
         return _discover_packs_from_path(Path(root_path))
 
 
+def get_builtin_pack_roots_and_packs() -> tuple[dict[str, Path], list[PackManifest]]:
+    """Return pack_roots and packs for the builtin pack directory.
+
+    Uses the grove.packs.builtins package resource. Caller can use the
+    result for compose, apply, sync_managed, or add_pack.
+
+    Returns:
+        (pack_roots map pack_id -> path, packs list in dependency order).
+    """
+    builtins_ref = files("grove.packs") / "builtins"
+    with as_file(builtins_ref) as builtins_path:
+        builtins_dir = Path(builtins_path)
+        packs = _discover_packs_from_path(builtins_dir)
+        pack_roots = {p.id: builtins_dir / p.id for p in packs}
+        return pack_roots, packs
+
+
 def _discover_packs_from_path(root: Path) -> list[PackManifest]:
     """Scan root for pack subdirs and return manifests in dependency order.
 

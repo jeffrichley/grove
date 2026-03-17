@@ -10,6 +10,7 @@ import typer
 
 from grove.analyzer import analyze
 from grove.core import apply, compose, save_manifest
+from grove.core.add import add_pack
 from grove.core.file_ops import ApplyOptions
 from grove.core.manifest import MANIFEST_SCHEMA_VERSION
 from grove.core.models import (
@@ -19,7 +20,14 @@ from grove.core.models import (
     ManifestState,
     ProjectSection,
 )
-from grove.core.registry import discover_packs
+from grove.core.registry import discover_packs, get_builtin_pack_roots_and_packs
+from grove.core.sync import run_sync
+from grove.exceptions import (
+    GroveConfigError,
+    GroveError,
+    GroveManifestError,
+    GrovePackError,
+)
 from grove.tui import GroveInitApp
 from grove.tui.state import setup_state_from_manifest
 
@@ -67,7 +75,7 @@ def _run_init_flag_based(
         dry_run: If True, do not write files.
 
     Raises:
-        Exit: When a pack id is not found in the registry (typer.Exit).
+        GrovePackError: When a pack id is not found in the registry.
     """
     builtins_ref = files("grove.packs") / "builtins"
     with as_file(builtins_ref) as builtins_path:
@@ -79,11 +87,7 @@ def _run_init_flag_based(
     for pid in selected:
         if pid not in pack_roots:
             available = sorted(pack_roots.keys())
-            typer.echo(
-                f"Error: pack '{pid}' not found; available: {available}",
-                err=True,
-            )
-            raise typer.Exit(1)
+            raise GrovePackError(f"pack '{pid}' not found; available: {available}")
 
     profile = analyze(root)
     install_root = root / ".grove"
@@ -149,6 +153,26 @@ def _analysis_summary(profile: object) -> str:
     return ", ".join(parts) if parts else ""
 
 
+def _resolve_root(root: Path | None) -> Path:
+    """Resolve and validate project root; raise if not a directory.
+
+    Args:
+        root: Project root or None for cwd.
+
+    Returns:
+        Resolved absolute Path to project root.
+
+    Raises:
+        GroveConfigError: When path is not a directory.
+    """
+    if root is None:
+        root = Path.cwd()
+    root = Path(root).resolve()
+    if not root.is_dir():
+        raise GroveConfigError(f"root is not a directory: {root}")
+    return root
+
+
 @app.command()
 def init(
     root: Annotated[
@@ -183,20 +207,106 @@ def init(
         dry_run: If True, do not write files.
 
     Raises:
-        Exit: On validation error (e.g. root not a dir, unknown pack) via typer.Exit.
+        typer.Exit: On validation error (e.g. root not a dir, unknown pack).
     """
-    if root is None:
-        root = Path.cwd()
-    root = Path(root).resolve()
-    if not root.is_dir():
-        typer.echo(f"Error: root is not a directory: {root}", err=True)
-        raise typer.Exit(1)
+    try:
+        root = _resolve_root(root)
+    except GroveError as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1) from e
 
     if pack is None and sys.stdout.isatty():
         _run_init_tui(root)
         return
 
-    _run_init_flag_based(root, pack, dry_run)
+    try:
+        _run_init_flag_based(root, pack, dry_run)
+    except GroveError as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1) from e
+
+
+@app.command()
+def sync(
+    root: Annotated[
+        Path | None,
+        typer.Option("--root", "-r", help="Project root (default: current directory)."),
+    ] = None,
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run",
+            help="Do not write files; only report what would be written.",
+        ),
+    ] = False,
+) -> None:
+    """Re-render managed files from current templates and profile.
+
+    Requires an existing Grove manifest (.grove/manifest.toml). Writes only
+    paths listed in the manifest; does not add or remove files from the manifest.
+
+    Args:
+        root: Project root directory (default: current directory).
+        dry_run: If True, do not write files; report what would be written.
+
+    Raises:
+        typer.Exit: When manifest is missing or invalid.
+    """
+    try:
+        root = _resolve_root(root)
+        manifest_path = root / ".grove" / "manifest.toml"
+        if not manifest_path.exists():
+            raise GroveManifestError("No Grove manifest; run 'grove init' first.")
+        written = run_sync(root, dry_run=dry_run)
+    except GroveError as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1) from e
+
+    if dry_run:
+        typer.echo("Dry run: would write:")
+        for p in written:
+            typer.echo(f"  {p}")
+    elif written:
+        typer.echo("Updated:")
+        for p in written:
+            typer.echo(f"  {p}")
+    else:
+        typer.echo("No managed files to update.")
+
+
+@app.command()
+def add(
+    pack: Annotated[str, typer.Argument(help="Pack id to add (e.g. 'python').")],
+    root: Annotated[
+        Path | None,
+        typer.Option("--root", "-r", help="Project root (default: current directory)."),
+    ] = None,
+) -> None:
+    """Add a pack to an existing Grove installation.
+
+    Requires an existing manifest (.grove/manifest.toml). Resolves
+    dependencies and updates the manifest and generated files.
+
+    Args:
+        pack: Pack id to install.
+        root: Project root directory (default: current directory).
+
+    Raises:
+        typer.Exit: When manifest is missing or pack not found.
+    """
+    try:
+        root = _resolve_root(root)
+        manifest_path = root / ".grove" / "manifest.toml"
+        if not manifest_path.exists():
+            raise GroveManifestError("No Grove manifest; run 'grove init' first.")
+        pack_roots, packs = get_builtin_pack_roots_and_packs()
+        updated = add_pack(root, manifest_path, pack, pack_roots, packs)
+    except GroveError as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1) from e
+
+    save_manifest(manifest_path, updated)
+    typer.echo(f"Added pack {pack}.")
 
 
 def main() -> None:

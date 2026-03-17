@@ -1,4 +1,4 @@
-"""File operations: preview and apply install plan with collision handling.
+"""File operations: preview, apply, and sync install plan with collision handling.
 
 Supports dry_run and preview (path + content). No overwrite without explicit
 caller-provided strategy (overwrite | skip | rename); otherwise fail.
