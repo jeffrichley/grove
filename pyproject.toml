@@ -20,6 +20,7 @@ dev = [
     "mypy>=1.19.1",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
+    "pytest-drill-sergeant>=0.4.0",
     "ruff>=0.8.0",
     "xenon>=0.9.3",
     "vulture>=2.11",
@@ -44,6 +45,7 @@ packages = ["src/grove"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+addopts = "-p drill_sergeant"
 markers = [
     "unit: Unit tests that test individual components in isolation",
     "integration: Integration tests that test multiple components together",
@@ -97,6 +99,22 @@ warn_unused_configs = true
 warn_unused_ignores = true
 disallow_untyped_defs = true
 packages = ["grove"]
+
+[tool.drill_sergeant]
+enabled = true
+enforce_markers = true
+enforce_aaa = true
+enforce_file_length = true
+marker_severity = "error"
+aaa_severity = "error"
+aaa_mode = "strict"
+file_length_mode = "error"
+auto_detect_markers = true
+write_markers = true
+max_file_length = 350
+min_description_length = 3
+file_length_inline_ignore = true
+file_length_inline_ignore_token = "drill-sergeant: file-length ignore"
 
 [tool.coverage.run]
 source = ["src/grove"]

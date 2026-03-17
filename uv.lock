@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.12"
 
 [[package]]
@@ -428,6 +428,7 @@ dev = [
     { name = "pylint" },
     { name = "pytest" },
     { name = "pytest-cov" },
+    { name = "pytest-drill-sergeant" },
     { name = "pytest-xdist" },
     { name = "radon" },
     { name = "ruff" },
@@ -456,6 +457,7 @@ dev = [
     { name = "pylint", specifier = ">=3.0" },
     { name = "pytest", specifier = ">=9.0.2" },
     { name = "pytest-cov", specifier = ">=7.0.0" },
+    { name = "pytest-drill-sergeant", specifier = ">=0.4.0" },
     { name = "pytest-xdist", specifier = ">=3.8.0" },
     { name = "radon", specifier = ">=6.0" },
     { name = "ruff", specifier = ">=0.8.0" },
@@ -1102,6 +1104,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/5e/f7/c933acc76f5208b3b00089573cf6a2bc26dc80a8aece8f52bb7d6b1855ca/pytest_cov-7.0.0.tar.gz", hash = "sha256:33c97eda2e049a0c5298e91f519302a1334c26ac65c1a483d6206fd458361af1", size = 54328, upload-time = "2025-09-09T10:57:02.113Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ee/49/1377b49de7d0c1ce41292161ea0f721913fa8722c19fb9c1e3aa0367eecb/pytest_cov-7.0.0-py3-none-any.whl", hash = "sha256:3b8e9558b16cc1479da72058bdecf8073661c7f57f7d3c5f22a1c23507f2d861", size = 22424, upload-time = "2025-09-09T10:57:00.695Z" },
+]
+
+[[package]]
+name = "pytest-drill-sergeant"
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d8/1a/14b52124ca26fd66bb53e739c902b4c55e100683701a45ffd7e627795c62/pytest_drill_sergeant-0.4.0.tar.gz", hash = "sha256:4e16c29d06650f39ea40b510dcdbcf5955990e267356f1f2becb8c8a9e86920b", size = 25335, upload-time = "2026-02-20T02:13:55.545Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f3/5d/7c9ebdc0c53a5c68dea19a747936cc046bd1465742f0d58973f6df73f50b/pytest_drill_sergeant-0.4.0-py3-none-any.whl", hash = "sha256:48ec86658fd0ad74924728f4de8aa11c416c2ebf3e7f75daa5a81560b06653d6", size = 26493, upload-time = "2026-02-20T02:13:54.601Z" },
 ]
 
 [[package]]

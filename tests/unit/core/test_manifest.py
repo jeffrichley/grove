@@ -17,6 +17,7 @@ from grove.core.models import (
 @pytest.mark.unit
 def test_save_and_load_round_trip(tmp_path: Path) -> None:
     """Save ManifestState to TOML and load it back; data matches."""
+    # Arrange - path and full ManifestState
     path = tmp_path / "manifest.toml"
     state = ManifestState(
         grove=GroveSection(version="0.1.0", schema_version=MANIFEST_SCHEMA_VERSION),
@@ -30,10 +31,11 @@ def test_save_and_load_round_trip(tmp_path: Path) -> None:
             GeneratedFileRecord(path="rules/python.md", pack_id="python"),
         ],
     )
+    # Act - save then load
     save_manifest(path, state)
-    assert path.exists()
-
     loaded = load_manifest(path)
+    # Assert - file exists and loaded state matches original
+    assert path.exists()
     assert loaded.grove.version == state.grove.version
     assert loaded.grove.schema_version == state.grove.schema_version
     assert loaded.project.root == state.project.root
@@ -47,7 +49,10 @@ def test_save_and_load_round_trip(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_load_missing_file_raises(tmp_path: Path) -> None:
     """load_manifest on non-existent path raises FileNotFoundError."""
+    # Arrange - path that does not exist
     path = tmp_path / "nonexistent.toml"
+    # Act - load_manifest
+    # Assert - FileNotFoundError
     with pytest.raises(FileNotFoundError, match="Manifest not found"):
         load_manifest(path)
 
@@ -55,8 +60,11 @@ def test_load_missing_file_raises(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_load_invalid_toml_missing_grove_section(tmp_path: Path) -> None:
     """load_manifest with TOML missing [grove] raises ValueError."""
+    # Arrange - TOML file without [grove]
     path = tmp_path / "manifest.toml"
     path.write_text('[project]\nroot = "/repo"\n')
+    # Act - load_manifest
+    # Assert - ValueError about [grove]
     with pytest.raises(ValueError, match="contain \\[grove\\]"):
         load_manifest(path)
 
@@ -64,8 +72,11 @@ def test_load_invalid_toml_missing_grove_section(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_load_invalid_toml_missing_project_section(tmp_path: Path) -> None:
     """load_manifest with TOML missing [project] raises ValueError."""
+    # Arrange - TOML file without [project]
     path = tmp_path / "manifest.toml"
     path.write_text('[grove]\nversion = "0.1.0"\nschema_version = 1\n')
+    # Act - load_manifest
+    # Assert - ValueError about [project]
     with pytest.raises(ValueError, match="contain \\[project\\]"):
         load_manifest(path)
 
@@ -73,12 +84,15 @@ def test_load_invalid_toml_missing_project_section(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_save_creates_parent_dir(tmp_path: Path) -> None:
     """save_manifest creates parent directory if needed."""
+    # Arrange - path with missing parent dirs and minimal state
     sub = tmp_path / "sub" / "dir" / "manifest.toml"
     state = ManifestState(
         grove=GroveSection(version="0.1.0", schema_version=1),
         project=ProjectSection(root="/repo", analysis_summary=""),
     )
+    # Act - save_manifest
     save_manifest(sub, state)
-    assert sub.exists()
     loaded = load_manifest(sub)
+    # Assert - file exists and content round-trips
+    assert sub.exists()
     assert loaded.grove.version == "0.1.0"
