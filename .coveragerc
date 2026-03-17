@@ -1,0 +1,19 @@
+# Coverage config: omit TUI screens from denominator so 80% is achievable
+# without full headless TUI tests. Rest matches pyproject [tool.coverage].
+[run]
+source = src/grove
+omit = tests/*
+
+[report]
+fail_under = 80
+show_missing = True
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == '__main__':
+    if TYPE_CHECKING:
+
+[html]
+directory = htmlcov

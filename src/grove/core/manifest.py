@@ -8,6 +8,7 @@ import tomli_w
 from grove.core.models import (
     GeneratedFileRecord,
     GroveSection,
+    InitProvenance,
     InstalledPackRecord,
     ManifestState,
     ProjectSection,
@@ -86,6 +87,30 @@ def _parse_packs(data: dict[str, object]) -> list[InstalledPackRecord]:
     ]
 
 
+def _parse_init_section(data: dict[str, object]) -> InitProvenance | None:
+    """Extract optional [init] section for provenance (TUI prefill).
+
+    Args:
+        data: Raw TOML data.
+
+    Returns:
+        InitProvenance if [init] present and valid, else None.
+    """
+    init_data = data.get("init")
+    if not init_data or not isinstance(init_data, dict):
+        return None
+    return InitProvenance(
+        install_root=str(init_data.get("install_root", ".grove")),
+        core_include_adrs=bool(init_data.get("core_include_adrs", True)),
+        core_include_handoffs=bool(init_data.get("core_include_handoffs", True)),
+        core_include_scoped_rules=bool(
+            init_data.get("core_include_scoped_rules", True)
+        ),
+        core_include_memory=bool(init_data.get("core_include_memory", True)),
+        core_include_skills_dir=bool(init_data.get("core_include_skills_dir", True)),
+    )
+
+
 def _parse_generated_files(data: dict[str, object]) -> list[GeneratedFileRecord]:
     """Extract [[generated_files]] list.
 
@@ -134,12 +159,14 @@ def load_manifest(path: Path) -> ManifestState:
     project = _parse_project_section(data)
     installed_packs = _parse_packs(data)
     generated_files = _parse_generated_files(data)
+    init_provenance = _parse_init_section(data)
 
     return ManifestState(
         grove=grove,
         project=project,
         packs=installed_packs,
         generated_files=generated_files,
+        init_provenance=init_provenance,
     )
 
 
@@ -152,7 +179,7 @@ def save_manifest(path: Path, state: ManifestState) -> None:
     """
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Build dict for TOML: [grove], [project], [packs], [[generated_files]]
+    # Build dict for TOML: [grove], [project], [packs], [[generated_files]], [init]
     data: dict[str, object] = {
         "grove": {
             "version": state.grove.version,
@@ -167,6 +194,16 @@ def save_manifest(path: Path, state: ManifestState) -> None:
             {"path": g.path, "pack_id": g.pack_id} for g in state.generated_files
         ],
     }
+    if state.init_provenance is not None:
+        prov = state.init_provenance
+        data["init"] = {
+            "install_root": prov.install_root,
+            "core_include_adrs": prov.core_include_adrs,
+            "core_include_handoffs": prov.core_include_handoffs,
+            "core_include_scoped_rules": prov.core_include_scoped_rules,
+            "core_include_memory": prov.core_include_memory,
+            "core_include_skills_dir": prov.core_include_skills_dir,
+        }
 
     with path.open("wb") as f:
         tomli_w.dump(data, f)

@@ -134,10 +134,33 @@ class GeneratedFileRecord(BaseModel):
     pack_id: str = Field(default="", description="Pack that generated this file.")
 
 
+class InitProvenance(BaseModel):
+    """Optional [init] section: last init choices for re-run / TUI prefill.
+
+    Stored in .grove/manifest.toml so we can query what was selected previously
+    and pre-select Core install and Recommended packs when re-running init.
+    """
+
+    install_root: str = Field(
+        default=".grove",
+        description="Install root path (relative or absolute) as stored.",
+    )
+    core_include_adrs: bool = Field(default=True, description="ADRs included.")
+    core_include_handoffs: bool = Field(default=True, description="Handoffs included.")
+    core_include_scoped_rules: bool = Field(
+        default=True, description="Scoped rules included."
+    )
+    core_include_memory: bool = Field(default=True, description="Memory included.")
+    core_include_skills_dir: bool = Field(
+        default=True, description="Skills directory included."
+    )
+
+
 class ManifestState(BaseModel):
     """In-memory shape of .grove/manifest.toml.
 
-    Schema version 1. Sections: [grove], [project], [packs], [[generated_files]].
+    Schema version 1. Sections: [grove], [project], [packs], [[generated_files]],
+    and optional [init] for provenance (TUI prefill).
     """
 
     grove: GroveSection = Field(..., description="Grove version and schema version.")
@@ -152,6 +175,10 @@ class ManifestState(BaseModel):
     generated_files: list[GeneratedFileRecord] = Field(
         default_factory=list,
         description="List of generated file paths and their pack.",
+    )
+    init_provenance: InitProvenance | None = Field(
+        default=None,
+        description="Optional [init] section: last init choices for TUI prefill.",
     )
 
     model_config = {"populate_by_name": True}

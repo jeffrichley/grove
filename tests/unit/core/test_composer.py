@@ -31,6 +31,7 @@ def test_compose_plan_includes_base_and_python_files_when_both_selected(
     tmp_path: Path,
 ) -> None:
     """Plan includes files from Base and Python packs when both selected."""
+    # Arrange - base and python packs, profile, install root
     packs = _packs_with_templates(tmp_path)
     profile = ProjectProfile(
         project_name="my-app",
@@ -39,15 +40,15 @@ def test_compose_plan_includes_base_and_python_files_when_both_selected(
         test_framework="pytest",
     )
     install_root = tmp_path / ".grove"
+    # Act - compose with base and python selected
     plan = compose(profile, ["base", "python"], install_root, packs)
-
+    # Assert - install_root and three files from both packs
     assert plan.install_root == install_root
     file_dsts = [f.dst for f in plan.files]
     assert (install_root / "GROVE.md") in file_dsts
     assert (install_root / "plans" / ".gitkeep") in file_dsts
     assert (install_root / "rules" / "python.md") in file_dsts
     assert len(plan.files) == 3
-
     base_files = [f for f in plan.files if f.pack_id == "base"]
     python_files = [f for f in plan.files if f.pack_id == "python"]
     assert len(base_files) == 2
@@ -57,6 +58,7 @@ def test_compose_plan_includes_base_and_python_files_when_both_selected(
 @pytest.mark.unit
 def test_compose_variables_include_profile_fields(tmp_path: Path) -> None:
     """Variables include project_name, package_manager, test_framework from profile."""
+    # Arrange - packs and profile with all variable fields set
     packs = _packs_with_templates(tmp_path)
     profile = ProjectProfile(
         project_name="my-project",
@@ -66,8 +68,9 @@ def test_compose_variables_include_profile_fields(tmp_path: Path) -> None:
         tools=["ruff", "mypy"],
     )
     install_root = tmp_path / ".grove"
+    # Act - compose
     plan = compose(profile, ["base", "python"], install_root, packs)
-
+    # Assert - every planned file has profile fields in variables
     assert len(plan.files) >= 1
     for pf in plan.files:
         assert pf.variables["project_name"] == "my-project"
@@ -80,11 +83,13 @@ def test_compose_variables_include_profile_fields(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_compose_plan_structure(tmp_path: Path) -> None:
     """plan.install_root and plan.files structure are correct."""
+    # Arrange - packs and minimal profile
     packs = _packs_with_templates(tmp_path)
     profile = ProjectProfile(project_name="x")
     install_root = tmp_path / ".grove"
+    # Act - compose base only
     plan = compose(profile, ["base"], install_root, packs)
-
+    # Assert - install_root resolved and each file has valid structure
     assert plan.install_root == install_root.resolve()
     for pf in plan.files:
         assert pf.pack_id == "base"
@@ -100,9 +105,12 @@ def test_compose_plan_structure(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_compose_missing_pack_id_raises(tmp_path: Path) -> None:
     """Unknown selected pack id raises ValueError with clear message."""
+    # Arrange - packs without nonexistent id
     packs = _packs_with_templates(tmp_path)
     profile = ProjectProfile()
     install_root = tmp_path / ".grove"
+    # Act - compose with nonexistent pack id
+    # Assert - ValueError with message about pack not available
     with pytest.raises(ValueError, match=r"Pack id 'nonexistent'.*not available"):
         compose(profile, ["base", "nonexistent"], install_root, packs)
 
@@ -110,10 +118,13 @@ def test_compose_missing_pack_id_raises(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_compose_empty_selection_empty_files(tmp_path: Path) -> None:
     """Selecting no packs yields no files."""
+    # Arrange - packs and profile, empty selection
     packs = _packs_with_templates(tmp_path)
     profile = ProjectProfile()
     install_root = tmp_path / ".grove"
+    # Act - compose with no packs selected
     plan = compose(profile, [], install_root, packs)
+    # Assert - install_root set and no files
     assert plan.install_root == install_root
     assert plan.files == []
 
@@ -121,9 +132,12 @@ def test_compose_empty_selection_empty_files(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_compose_base_only_yields_base_templates(tmp_path: Path) -> None:
     """Selecting only base yields base pack files."""
+    # Arrange - packs and profile, base only selected
     packs = _packs_with_templates(tmp_path)
     profile = ProjectProfile(project_name="a")
     install_root = tmp_path / ".grove"
+    # Act - compose base only
     plan = compose(profile, ["base"], install_root, packs)
+    # Assert - all files from base pack, count two
     assert all(f.pack_id == "base" for f in plan.files)
     assert len(plan.files) == 2

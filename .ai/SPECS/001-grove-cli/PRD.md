@@ -25,7 +25,7 @@ Grove CLI is a **template-driven installer and lifecycle manager** for the Grove
 **Core principles:**
 
 1. **Context is the scarce resource.** The CLI exists to prevent context rot and ceremony sprawl, not to add more of it.
-2. **Registry-driven, not hard-coded.** Packs, setup questions, templates, and recommendations are data-driven (e.g. `pack.yaml`, manifest) so new packs can be added without changing core code.
+2. **Registry-driven, not hard-coded.** Packs, setup questions, templates, and recommendations are data-driven (e.g. `pack.toml`, manifest) so new packs can be added without changing core code.
 3. **Manifest-backed lifecycle.** Every install is tracked in `.grove/manifest.toml` so the CLI knows what it owns, can regenerate managed files, detect drift, and remove packs safely.
 4. **Analysis informs; user decides.** Repo analysis suggests packs and defaults, but the user can override. No silent assumptions.
 5. **Assembled, not dumped.** Start tiny; opt into packs; generate only what is needed; support later expansion.
@@ -57,9 +57,9 @@ Grove CLI is a **template-driven installer and lifecycle manager** for the Grove
 
 #### Core functionality
 
-- ✅ CLI entry point: `grove init`, `grove analyze`, `grove add`, `grove sync`, `grove manage` (TUI dashboard).
+- ✅ CLI entry point: `grove configure` (unified TUI: first-time setup or manage existing), `grove analyze`, `grove add`, `grove sync`. `grove init` and `grove manage` are aliases for `grove configure` (init = no manifest; manage = manifest exists).
 - ✅ Interactive TUI (e.g. Textual) for first-time setup: welcome → analyze → core install → pack selection → pack configuration (dynamic questions) → preview → conflicts → apply → finish.
-- ✅ Dynamic pack registry: discover base + capability packs from manifests (e.g. `pack.yaml`); no hard-coded pack list in TUI.
+- ✅ Dynamic pack registry: discover base + capability packs from manifests (e.g. `pack.toml`); no hard-coded pack list in TUI.
 - ✅ Required Base Pack: always installed; provides `GROVE.md`, `manifest.toml`, `plans/`, `handoffs/`, `decisions/`, skill schema/templates; target ~6–10 files.
 - ✅ At least 2–3 optional capability packs (e.g. Python, CLI, LangGraph) with rules + skill templates + contributed setup questions.
 - ✅ Repo analyzer: detect language(s), package manager, test/lint/type tools, frameworks (e.g. Typer, LangGraph); output structured `ProjectProfile`; suggest packs from registry rules.
@@ -76,7 +76,7 @@ Grove CLI is a **template-driven installer and lifecycle manager** for the Grove
 
 ### Out of scope (MVP)
 
-- ❌ `grove remove` (defer to post-MVP; MVP focuses on init, add, sync, manage).
+- ❌ `grove remove` (defer to post-MVP; MVP focuses on configure, add, sync).
 - ❌ `grove doctor` (defer; optional post-MVP).
 - ❌ `grove generate-skill` as a standalone CLI (skill generation can be part of init/add/sync; dedicated command later).
 - ❌ Community pack marketplace / remote pack install.
@@ -87,12 +87,12 @@ Grove CLI is a **template-driven installer and lifecycle manager** for the Grove
 
 ## 5. User Stories
 
-1. **As a developer**, I want to run `grove init` in a repo and complete a short TUI so that I get a minimal, correct Grove setup without editing files by hand.
+1. **As a developer**, I want to run `grove configure` (or `grove init`) in a repo and complete a short TUI so that I get a minimal, correct Grove setup without editing files by hand.
 2. **As a developer**, I want the TUI to show what was detected (language, tools, frameworks) and what will be installed so that I can correct or accept before any write.
 3. **As a developer**, I want to choose only the packs I need (e.g. Base + Python + CLI) so that my `.grove/` stays small and relevant.
 4. **As a developer**, I want setup questions (e.g. package manager, validation style) to come from the selected packs automatically so that I don’t see irrelevant options.
 5. **As a maintainer**, I want a manifest that tracks what Grove installed so that I can re-run `grove sync` after changing the repo or templates and keep managed files up to date.
-6. **As a maintainer**, I want to run `grove add <pack>` later so that I can extend Grove without re-running the full init wizard.
+6. **As a maintainer**, I want to run `grove add <pack>` or open `grove configure` (manage mode) later so that I can extend Grove without re-running the full setup wizard.
 7. **As a developer**, I want generated skills to reference real commands and paths from my repo (e.g. `uv run pytest`, `src/`) so that agents get actionable guidance.
 
 ---
@@ -101,7 +101,7 @@ Grove CLI is a **template-driven installer and lifecycle manager** for the Grove
 
 ### High-level layers
 
-- **CLI:** Commands (`init`, `analyze`, `add`, `sync`, `manage`) call application services; support scripting/CI where useful.
+- **CLI:** Commands (`configure`, `analyze`, `add`, `sync`) call application services; `configure` has two modes—no manifest = full setup flow, manifest exists = manage dashboard; support scripting/CI where useful.
 - **TUI:** Multi-screen flow (welcome, analyze, core install, pack selection, pack config, preview, conflicts, finish); state object (e.g. `SetupState`) shared across screens; widgets stay dumb, logic in services.
 - **Registry:** Loads pack manifests; answers “what packs exist?”, “what do they require?”, “what setup questions do they contribute?”, “what templates do they generate?”; no hard-coded menus.
 - **Analyzer:** Plugin-style detectors (e.g. Python, uv, pytest, ruff, Typer, LangGraph); each emits structured facts + confidence; engine builds a single `ProjectProfile`.
@@ -127,7 +127,7 @@ Grove CLI is a **template-driven installer and lifecycle manager** for the Grove
 
 ### Key design patterns
 
-- **Pack as data:** A pack is primarily a manifest (`pack.yaml`) + templates; optional code only for advanced logic. New packs can be added without changing CLI core.
+- **Pack as data:** A pack is primarily a manifest (e.g. `pack.toml`) + templates; optional code only for advanced logic. New packs can be added without changing CLI core.
 - **Setup questions contributed by packs:** Each pack declares questions (id, type, label, options, default_from_analysis, show_when). TUI aggregates and orders them; only shows questions whose conditions are met.
 - **Managed vs seeded files:** Managed = Grove can regenerate; seeded = create once, user edits, don’t overwrite.
 
@@ -139,11 +139,10 @@ Grove CLI is a **template-driven installer and lifecycle manager** for the Grove
 
 | Command | Purpose |
 |---------|---------|
-| `grove init` | Start Grove setup (interactive TUI or guided); install Base + selected packs; write manifest. |
+| `grove configure` | **Unified setup and manage.** No `.grove/manifest.toml` → full TUI flow (welcome → … → finish). Manifest exists → manage TUI: view installed packs, analysis, sync status; add pack, re-run analysis, optional full re-setup. Aliases: `grove init` (same as configure when no manifest), `grove manage` (same as configure when manifest exists). |
 | `grove analyze` | Inspect repo only; print structured project profile and pack recommendations. |
 | `grove add <pack>` | Install an additional pack; resolve deps; render new files; update manifest. |
 | `grove sync` | Re-render all managed files from current manifest and templates; report changes. |
-| `grove manage` | Launch TUI dashboard: view installed packs, analysis, generated skills, sync status; add pack, re-run analysis, preview manifest. |
 
 ### TUI flow (first-time setup)
 
@@ -155,7 +154,7 @@ Grove CLI is a **template-driven installer and lifecycle manager** for the Grove
 6. **Components preview** — List folders/files to create, files that exist, skills to generate; managed vs unmanaged.
 7. **Conflicts** — For collisions: overwrite / keep existing / rename / diff.
 8. **Final review** — Summary; apply installation.
-9. **Finish** — Success message; next commands (`grove doctor`, `grove manage`, `grove sync`).
+9. **Finish** — Success message; next commands (`grove doctor`, `grove configure`, `grove sync`).
 
 ### Pack model
 
@@ -173,9 +172,9 @@ Grove CLI is a **template-driven installer and lifecycle manager** for the Grove
 
 - **Language:** Python 3.12+.
 - **CLI:** Typer (or similar) for commands and flags.
-- **TUI:** Textual for multi-screen installer and manage dashboard.
+- **TUI:** Textual for multi-screen installer and configure (setup / manage) dashboard.
 - **Templates:** Jinja2 (or equivalent) wrapped with template descriptors (path, variables, conditions, managed flag).
-- **Config/data:** TOML for manifest and project config; YAML for pack manifests (`pack.yaml`).
+- **Config/data:** TOML for manifest and pack manifests (e.g. `pack.toml`).
 - **Models:** Pydantic for ProjectProfile, PackManifest, SetupQuestion, InstallPlan, ManifestState, etc.
 - **Package/build:** pyproject.toml, hatchling; package name `grove` (this repo).
 - **Testing:** pytest; unit tests for analyzer, composer, renderer, file ops; integration tests for init/sync with fixture repos.
@@ -201,11 +200,11 @@ MVP is a CLI/TUI product; no REST API. Internal “API” is the service layer c
 
 ### MVP success definition
 
-- A developer can run `grove init` in a Python (uv + pytest) repo, complete the TUI with Base + Python + CLI packs, and get a valid `.grove/` with GROVE.md, manifest.toml, rules, plans, handoffs, decisions, and at least one generated skill that references real commands (e.g. `uv run pytest`).
+- A developer can run `grove configure` (or `grove init`) in a Python (uv + pytest) repo, complete the TUI with Base + Python + CLI packs, and get a valid `.grove/` with GROVE.md, manifest.toml, rules, plans, handoffs, decisions, and at least one generated skill that references real commands (e.g. `uv run pytest`).
 - `grove sync` re-renders managed files without breaking user-edited seeded files.
 - `grove add <pack>` installs an extra pack and updates the manifest correctly.
-- `grove manage` opens a TUI that shows installed packs and allows adding a pack or re-running analysis.
-- Adding a new capability pack (e.g. “research”) requires only adding a directory under `packs/builtins/` with `pack.yaml` and templates—no changes to TUI screen logic or hard-coded pack lists.
+- `grove configure` (with existing manifest) opens a TUI that shows installed packs and allows adding a pack or re-running analysis.
+- Adding a new capability pack (e.g. “research”) requires only adding a directory under `packs/builtins/` with `pack.toml` and templates—no changes to TUI screen logic or hard-coded pack lists.
 
 ### Functional requirements
 
@@ -225,28 +224,30 @@ MVP is a CLI/TUI product; no REST API. Internal “API” is the service layer c
 
 ## 12. Implementation Phases
 
-### Phase 1: Core engine (no TUI)
+### Phase 1: Core engine (no TUI) — **Done**
 
 - **Goal:** Registry, analyzer, composer, renderer, file ops, manifest read/write; Base Pack and one capability pack (e.g. Python); no interactive UI.
 - **Deliverables:** ✅ Pack loader and registry; ✅ Analyzer with 3–5 detectors (Python, uv, pytest, ruff, Typer); ✅ Composer producing install plan; ✅ Template renderer; ✅ File writer with preview/dry-run; ✅ Manifest schema and write; ✅ Base + Python pack with templates.
-- **Validation:** Unit tests; CLI `grove init --non-interactive` (or similar) produces correct `.grove/` in fixture repo.
+- **Status:** Implemented. Configure/init is **flag-based**: `grove init` (alias for configure) with `--root`, `--pack`, `--dry-run` (no TUI). Default packs: base, python.
+- **Validation:** Unit tests; `grove init` or `grove init --dry-run` produces correct `.grove/` and manifest in fixture repo.
 
-### Phase 2: CLI and init flow
+### Phase 2: CLI and configure flow — **Done**
 
-- **Goal:** Full `grove init` with non-interactive (flag-based) and interactive TUI path.
+- **Goal:** Full `grove configure` (init mode) with non-interactive (flag-based) and interactive TUI path. Canonical command is `grove configure`; `grove init` retained as alias for first-time / full setup.
 - **Deliverables:** ✅ Typer CLI; ✅ TUI screens (welcome, analyze, pack selection, config, preview, conflicts, finish); ✅ Shared setup state; ✅ Integration with composer and installer.
-- **Validation:** Manual run of `grove init` in a real repo; all screens reachable; install matches manifest.
+- **Status:** Implemented. Plan 002 complete: all 9 TUI screens, Apply with per-path conflict choices, manifest + init provenance; flag-based `grove init --pack …` unchanged. (Manage mode / dashboard in Phase 3.)
+- **Validation:** Manual run of `grove configure` or `grove init` in a real repo; all screens reachable; install matches manifest.
 
-### Phase 3: Add, sync, and manage
+### Phase 3: Add, sync, and configure (manage mode)
 
-- **Goal:** Lifecycle commands and TUI dashboard.
-- **Deliverables:** ✅ `grove add <pack>`; ✅ `grove sync`; ✅ `grove manage` TUI (read-only + add pack); ✅ Conflict resolution in TUI and CLI.
-- **Validation:** Add a second pack after init; run sync after editing a template; manage shows correct state.
+- **Goal:** Lifecycle commands and configure’s “manage” mode when manifest exists.
+- **Deliverables:** ✅ `grove add <pack>`; ✅ `grove sync`; ✅ `grove configure` when manifest exists → manage TUI (read-only + add pack, re-run analysis); ✅ Conflict resolution in TUI and CLI.
+- **Validation:** Add a second pack after init; run sync after editing a template; `grove configure` (existing manifest) shows correct state.
 
 ### Phase 4: Polish and packaging
 
 - **Goal:** Robustness, docs, and distribution.
-- **Deliverables:** ✅ Error handling and clear messages; ✅ User-facing docs (README, command help); ✅ Pack author guide (pack.yaml schema, template conventions); ✅ Optional `grove doctor` stub.
+- **Deliverables:** ✅ Error handling and clear messages; ✅ User-facing docs (README, command help); ✅ Pack author guide (pack.toml schema, template conventions); ✅ Optional `grove doctor` stub.
 - **Validation:** New contributor can add a new pack following the guide; CLI installable via uv/pip.
 
 ---
@@ -266,7 +267,7 @@ MVP is a CLI/TUI product; no REST API. Internal “API” is the service layer c
 | Base Pack or default install grows into “.ai sprawl” again | Enforce size budget (~6–10 files for Base); review any new “always installed” content; keep heavy material in optional packs. |
 | TUI becomes hard-coded and brittle | Registry-driven questions and pack list; no pack names or question text in TUI code; add tests that add a new pack and assert it appears in flow. |
 | Manifest and managed-file semantics get ambiguous | Define and document managed vs seeded clearly; store source template and checksum per file; sync only touches managed. |
-| Repo analysis wrong or noisy | Expose overrides in TUI; store overrides in manifest; document detector confidence; allow “rescan” from manage. |
+| Repo analysis wrong or noisy | Expose overrides in TUI; store overrides in manifest; document detector confidence; allow “rescan” from configure (manage mode). |
 | Template variables missing or wrong | Schema for required variables per template; composer fails fast with clear error; pack author guide with examples. |
 
 ---
@@ -277,14 +278,12 @@ MVP is a CLI/TUI product; no REST API. Internal “API” is the service layer c
 
 - [docs/concept.md](../../docs/concept.md) — GROVE framework (Grow, Root, Optimize, Verify, Enrich).
 - Chat transcript: `tmp/2026-03-16_22-21-33__Project-Grove-Grove-Development-Process__chat.json` (source of CLI/TUI, pack model, registry, TUI flow, manifest design).
-- [.ai/SPECS/001-reboot/PRD.md](../001-reboot/PRD.md) — Lily agent OS (historical/context).
-- [.ai/SPECS/002-skills-system/PRD.md](../002-skills-system/PRD.md) — Skills system (SI-007); skills model aligns with “skill templates” and “generated project skills” in this PRD.
 
 ### Key dependencies
 
-- Grove CLI is the **installer** for the Grove context system; the system it installs (rules, plans, handoffs, skills) is used by agents and humans in the repo. This PRD does not define the agent runtime (see 001-reboot, 002-skills-system).
+- Grove CLI is the **installer** for the Grove context system; the system it installs (rules, plans, handoffs, skills) is used by agents and humans in the repo. This PRD does not define the agent runtime.
 
 ### Repository structure (this repo)
 
-- `src/grove/` — Grove package (currently minimal; will host CLI, TUI, core, analyzer, packs, templates).
-- `.ai/SPECS/003-grove-cli/` — This PRD; technical design (schemas, exact layouts) to be added here or in a sibling doc.
+- `src/grove/` — Grove package (CLI, core, analyzer, packs; TUI in later phases).
+- `.ai/SPECS/001-grove-cli/` — This PRD; technical design (schemas, exact layouts) to be added here or in a sibling doc.

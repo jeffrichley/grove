@@ -1,4 +1,4 @@
-# Justfile for Grove (lily-style baseline)
+# Justfile for Grove
 
 # Windows uses PowerShell, Unix-like systems use sh
 set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
