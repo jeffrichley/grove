@@ -2,13 +2,13 @@
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import ClassVar
+from typing import ClassVar, cast
 
 from textual.app import ComposeResult
 from textual.containers import Container, VerticalScroll
 from textual.widgets import Input, Markdown, RadioButton, RadioSet, SelectionList
 
-from grove.tui.screens.base import GroveBaseScreen
+from grove.tui.screens.base import GroveBaseScreen, _Bindings
 from grove.tui.screens.recommended_packs import RecommendedPacksScreen
 from grove.tui.state import SetupState
 
@@ -50,12 +50,15 @@ CORE_OPTION_SKILLS_DIR = "skills_dir"
 class CoreInstallScreen(GroveBaseScreen):
     """Screen 3: Base Pack, install root, toggles for ADRs, handoffs, etc."""
 
-    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("enter", "next", "Next"),
-        ("b", "back", "Back"),
-        ("q", "quit", "Quit"),
-        ("escape", "quit", "Quit"),
-    ]
+    BINDINGS: ClassVar[_Bindings] = cast(
+        _Bindings,
+        [
+            ("enter", "next", "Next"),
+            ("b", "back", "Back"),
+            ("q", "quit", "Quit"),
+            ("escape", "quit", "Quit"),
+        ],
+    )
 
     def __init__(self, state: SetupState) -> None:
         """Store shared setup state.

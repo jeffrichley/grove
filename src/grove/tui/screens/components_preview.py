@@ -1,7 +1,7 @@
 """Components preview screen: list files to create and their status."""
 
 from collections.abc import Callable
-from typing import ClassVar
+from typing import ClassVar, cast
 
 from textual.app import ComposeResult
 from textual.containers import Container, VerticalScroll
@@ -10,7 +10,7 @@ from textual.widgets import Markdown, RadioButton, RadioSet
 from grove.analyzer import analyze
 from grove.core.composer import compose
 from grove.core.registry import discover_packs
-from grove.tui.screens.base import GroveBaseScreen
+from grove.tui.screens.base import GroveBaseScreen, _Bindings
 from grove.tui.screens.conflicts import ConflictsScreen, has_conflicts
 from grove.tui.screens.final_review import FinalReviewScreen
 from grove.tui.state import SetupState
@@ -85,12 +85,15 @@ def _plan_summary_and_rows(state: SetupState) -> tuple[str, list[tuple[str, str]
 class ComponentsPreviewScreen(GroveBaseScreen):
     """Screen 6: preview components (files) to be created or updated."""
 
-    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("enter", "next", "Next"),
-        ("b", "back", "Back"),
-        ("q", "quit", "Quit"),
-        ("escape", "quit", "Quit"),
-    ]
+    BINDINGS: ClassVar[_Bindings] = cast(
+        _Bindings,
+        [
+            ("enter", "next", "Next"),
+            ("b", "back", "Back"),
+            ("q", "quit", "Quit"),
+            ("escape", "quit", "Quit"),
+        ],
+    )
 
     def __init__(self, state: SetupState) -> None:
         """Store shared setup state.

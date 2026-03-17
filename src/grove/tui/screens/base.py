@@ -4,8 +4,12 @@ from collections.abc import Callable
 from typing import Any
 
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.screen import Screen
 from textual.widgets import RadioSet
+
+# Type for BINDINGS class var (matches Textual Screen base).
+_Bindings = list[Binding | tuple[str, str] | tuple[str, str, str]]
 
 
 class GroveBaseScreen(Screen[None]):

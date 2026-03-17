@@ -1,7 +1,7 @@
 """Recommended packs screen: choose optional packs to install."""
 
 from collections.abc import Callable
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 from textual.app import ComposeResult
 from textual.containers import Container, VerticalScroll
@@ -9,7 +9,7 @@ from textual.widget import Widget
 from textual.widgets import Markdown, RadioButton, RadioSet, SelectionList
 
 from grove.core.registry import discover_packs
-from grove.tui.screens.base import GroveBaseScreen
+from grove.tui.screens.base import GroveBaseScreen, _Bindings
 from grove.tui.screens.components_preview import ComponentsPreviewScreen
 from grove.tui.screens.pack_config import PackConfigScreen, has_setup_questions
 from grove.tui.state import SetupState
@@ -85,12 +85,15 @@ def _optional_packs_widget(
 class RecommendedPacksScreen(GroveBaseScreen):
     """Screen 4: show required base pack, optional packs; select which to install."""
 
-    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("enter", "next", "Next"),
-        ("b", "back", "Back"),
-        ("q", "quit", "Quit"),
-        ("escape", "quit", "Quit"),
-    ]
+    BINDINGS: ClassVar[_Bindings] = cast(
+        _Bindings,
+        [
+            ("enter", "next", "Next"),
+            ("b", "back", "Back"),
+            ("q", "quit", "Quit"),
+            ("escape", "quit", "Quit"),
+        ],
+    )
 
     def __init__(self, state: SetupState) -> None:
         """Store shared setup state.

@@ -1,14 +1,14 @@
 """Welcome screen: explain Grove, confirm repo root, detect existing .grove."""
 
 from pathlib import Path
-from typing import ClassVar
+from typing import ClassVar, cast
 
 from textual.app import ComposeResult
 from textual.containers import Container, VerticalScroll
 from textual.widgets import Input, Markdown, RadioButton, RadioSet
 
 from grove.tui.screens.analysis import AnalysisScreen
-from grove.tui.screens.base import GroveBaseScreen
+from grove.tui.screens.base import GroveBaseScreen, _Bindings
 from grove.tui.state import SetupState
 
 # Step index for this screen (1-based); total steps match plan §7
@@ -28,11 +28,14 @@ You choose what to install; Grove writes `.grove/` and a manifest.
 class WelcomeScreen(GroveBaseScreen):
     """First screen: welcome message, repo root, existing manifest notice."""
 
-    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("enter", "next", "Next"),
-        ("q", "quit", "Quit"),
-        ("escape", "quit", "Quit"),
-    ]
+    BINDINGS: ClassVar[_Bindings] = cast(
+        _Bindings,
+        [
+            ("enter", "next", "Next"),
+            ("q", "quit", "Quit"),
+            ("escape", "quit", "Quit"),
+        ],
+    )
 
     def __init__(self, state: SetupState) -> None:
         """Store shared setup state for the flow.

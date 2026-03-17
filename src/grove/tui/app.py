@@ -1,12 +1,15 @@
 """Textual app for grove init: holds state and drives screen flow."""
 
 from pathlib import Path
-from typing import ClassVar
+from typing import ClassVar, cast
 
 from textual.app import App, ComposeResult
+from textual.binding import Binding
 
 from grove.tui.screens.welcome import WelcomeScreen
 from grove.tui.state import SetupState
+
+_Bindings = list[Binding | tuple[str, str] | tuple[str, str, str]]
 
 
 class GroveInitApp(App[None]):
@@ -14,10 +17,13 @@ class GroveInitApp(App[None]):
 
     TITLE = "▸ Grove init"
     CSS_PATH = str(Path(__file__).parent / "grove_init.tcss")
-    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("q", "quit", "Quit"),
-        ("escape", "quit", "Quit"),
-    ]
+    BINDINGS: ClassVar[_Bindings] = cast(
+        _Bindings,
+        [
+            ("q", "quit", "Quit"),
+            ("escape", "quit", "Quit"),
+        ],
+    )
 
     # Total steps in the flow (for step indicator)
     TOTAL_STEPS = 9

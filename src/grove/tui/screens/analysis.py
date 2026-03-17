@@ -1,6 +1,6 @@
 """Repository analysis screen: show detector results and allow re-run."""
 
-from typing import ClassVar
+from typing import ClassVar, cast
 
 from textual.app import ComposeResult
 from textual.containers import Container, VerticalScroll
@@ -8,7 +8,7 @@ from textual.widgets import Markdown, RadioButton, RadioSet
 
 from grove.analyzer import analyze
 from grove.core.models import ProjectProfile
-from grove.tui.screens.base import GroveBaseScreen
+from grove.tui.screens.base import GroveBaseScreen, _Bindings
 from grove.tui.screens.core_install import CoreInstallScreen
 from grove.tui.state import SetupState
 
@@ -47,13 +47,16 @@ def _format_profile_markdown(profile: ProjectProfile) -> str:
 class AnalysisScreen(GroveBaseScreen):
     """Screen 2: show repository analysis (profile); Next, Back, Re-run."""
 
-    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("enter", "next", "Next"),
-        ("b", "back", "Back"),
-        ("r", "rerun", "Re-run analysis"),
-        ("q", "quit", "Quit"),
-        ("escape", "quit", "Quit"),
-    ]
+    BINDINGS: ClassVar[_Bindings] = cast(
+        _Bindings,
+        [
+            ("enter", "next", "Next"),
+            ("b", "back", "Back"),
+            ("r", "rerun", "Re-run analysis"),
+            ("q", "quit", "Quit"),
+            ("escape", "quit", "Quit"),
+        ],
+    )
 
     def __init__(self, state: SetupState) -> None:
         """Store shared setup state.

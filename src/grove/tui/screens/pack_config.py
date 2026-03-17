@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 from textual.app import ComposeResult
 from textual.containers import Container, VerticalScroll
@@ -11,7 +11,7 @@ from textual.widget import Widget
 from textual.widgets import Input, Markdown, RadioButton, RadioSet, Select, Switch
 
 from grove.core.registry import discover_packs
-from grove.tui.screens.base import GroveBaseScreen
+from grove.tui.screens.base import GroveBaseScreen, _Bindings
 from grove.tui.screens.components_preview import ComponentsPreviewScreen
 from grove.tui.state import SetupState
 
@@ -194,12 +194,15 @@ def has_setup_questions(selected_pack_ids: list[str]) -> bool:
 class PackConfigScreen(GroveBaseScreen):
     """Screen 5: configure selected packs via their setup_questions."""
 
-    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("enter", "next", "Next"),
-        ("b", "back", "Back"),
-        ("q", "quit", "Quit"),
-        ("escape", "quit", "Quit"),
-    ]
+    BINDINGS: ClassVar[_Bindings] = cast(
+        _Bindings,
+        [
+            ("enter", "next", "Next"),
+            ("b", "back", "Back"),
+            ("q", "quit", "Quit"),
+            ("escape", "quit", "Quit"),
+        ],
+    )
 
     def __init__(self, state: SetupState) -> None:
         """Store shared setup state.

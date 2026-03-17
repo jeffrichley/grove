@@ -1,13 +1,13 @@
 """Conflicts screen: choose action per conflicting path (overwrite / keep / rename)."""
 
 from collections.abc import Callable
-from typing import ClassVar
+from typing import ClassVar, cast
 
 from textual.app import ComposeResult
 from textual.containers import Container, VerticalScroll
 from textual.widgets import Markdown, RadioButton, RadioSet, Select, Static
 
-from grove.tui.screens.base import GroveBaseScreen
+from grove.tui.screens.base import GroveBaseScreen, _Bindings
 from grove.tui.screens.final_review import FinalReviewScreen
 from grove.tui.state import SetupState
 
@@ -66,12 +66,15 @@ def has_conflicts(state: SetupState) -> bool:
 class ConflictsScreen(GroveBaseScreen):
     """Screen 7: resolve conflicts (overwrite / keep existing / rename) per path."""
 
-    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("enter", "apply_choices", "Apply choices"),
-        ("b", "back", "Back"),
-        ("q", "quit", "Quit"),
-        ("escape", "quit", "Quit"),
-    ]
+    BINDINGS: ClassVar[_Bindings] = cast(
+        _Bindings,
+        [
+            ("enter", "apply_choices", "Apply choices"),
+            ("b", "back", "Back"),
+            ("q", "quit", "Quit"),
+            ("escape", "quit", "Quit"),
+        ],
+    )
 
     def __init__(self, state: SetupState) -> None:
         """Store shared setup state.

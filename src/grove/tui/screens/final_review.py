@@ -20,7 +20,7 @@ from grove.core.models import (
     ProjectSection,
 )
 from grove.core.registry import discover_packs
-from grove.tui.screens.base import GroveBaseScreen
+from grove.tui.screens.base import GroveBaseScreen, _Bindings
 from grove.tui.screens.finish import FinishScreen
 from grove.tui.state import SetupState
 
@@ -124,12 +124,15 @@ def _build_manifest(state: SetupState, packs: list) -> ManifestState:
 class FinalReviewScreen(GroveBaseScreen):
     """Screen 8: final summary and Apply installation."""
 
-    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("enter", "apply", "Apply installation"),
-        ("b", "back", "Back"),
-        ("q", "quit", "Quit"),
-        ("escape", "quit", "Quit"),
-    ]
+    BINDINGS: ClassVar[_Bindings] = cast(
+        _Bindings,
+        [
+            ("enter", "apply", "Apply installation"),
+            ("b", "back", "Back"),
+            ("q", "quit", "Quit"),
+            ("escape", "quit", "Quit"),
+        ],
+    )
 
     def __init__(self, state: SetupState) -> None:
         """Store shared setup state.

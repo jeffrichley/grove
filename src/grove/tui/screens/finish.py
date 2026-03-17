@@ -1,13 +1,13 @@
 """Finish screen: success message and suggested next commands."""
 
 from collections.abc import Callable
-from typing import ClassVar
+from typing import ClassVar, cast
 
 from textual.app import ComposeResult
 from textual.containers import Container, VerticalScroll
 from textual.widgets import Markdown, RadioButton, RadioSet
 
-from grove.tui.screens.base import GroveBaseScreen
+from grove.tui.screens.base import GroveBaseScreen, _Bindings
 from grove.tui.state import SetupState
 
 FINISH_STEP = 9
@@ -33,11 +33,14 @@ def _install_root_display(state: SetupState) -> str:
 class FinishScreen(GroveBaseScreen):
     """Screen 9: success message and Done."""
 
-    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("enter", "done", "Done"),
-        ("q", "quit", "Quit"),
-        ("escape", "quit", "Quit"),
-    ]
+    BINDINGS: ClassVar[_Bindings] = cast(
+        _Bindings,
+        [
+            ("enter", "done", "Done"),
+            ("q", "quit", "Quit"),
+            ("escape", "quit", "Quit"),
+        ],
+    )
 
     def __init__(self, state: SetupState) -> None:
         """Store shared setup state.
