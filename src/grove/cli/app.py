@@ -319,6 +319,9 @@ def configure(
 
     Args:
         root: Project root directory (default: current directory).
+
+    Raises:
+        typer.Exit: On root resolution error or when not run in a TTY.
     """
     try:
         root = _resolve_root(root)
@@ -381,6 +384,9 @@ def manage(
 
     Args:
         root: Project root directory (default: current directory).
+
+    Raises:
+        typer.Exit: On root resolution error or when not run in a TTY.
     """
     try:
         root = _resolve_root(root)
