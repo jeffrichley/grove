@@ -5,6 +5,11 @@ import sys
 from pathlib import Path
 
 import pytest
+from typer.testing import CliRunner
+
+from grove.cli.app import app
+
+runner = CliRunner()
 
 
 def _run_grove_init(
@@ -66,3 +71,59 @@ def test_init_creates_grove_and_manifest(tmp_path: Path) -> None:
     assert "python" in content
     assert grove_md.is_file()
     assert "GROVE" in grove_md.read_text()
+
+
+@pytest.mark.integration
+def test_init_dry_run_in_process(tmp_path: Path) -> None:
+    """In-process: init --root <path> --dry-run exits 0 (covers cli.app)."""
+    # Arrange - project with pyproject.toml
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "fixture"\nversion = "0.1.0"\n'
+    )
+    # Act - invoke CLI in-process so coverage attributes cli/app.py
+    result = runner.invoke(app, ["init", "--root", str(tmp_path), "--dry-run"])
+    # Assert - success, dry-run message, no .grove directory
+    assert result.exit_code == 0, result.output
+    assert "Dry run" in result.output
+    assert not (tmp_path / ".grove").exists()
+
+
+@pytest.mark.integration
+def test_init_flag_based_in_process(tmp_path: Path) -> None:
+    """In-process: init --pack base --pack python creates .grove/ and manifest."""
+    # Arrange - project with pyproject.toml
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "fixture"\nversion = "0.1.0"\n'
+    )
+    # Act - invoke CLI in-process
+    result = runner.invoke(
+        app,
+        ["init", "--root", str(tmp_path), "--pack", "base", "--pack", "python"],
+    )
+    # Assert - success, .grove and manifest exist
+    assert result.exit_code == 0, result.output
+    grove_dir = tmp_path / ".grove"
+    manifest_path = grove_dir / "manifest.toml"
+    assert grove_dir.is_dir()
+    assert manifest_path.is_file()
+    content = manifest_path.read_text()
+    assert "base" in content
+    assert "python" in content
+
+
+@pytest.mark.integration
+def test_init_invalid_pack_exits_nonzero(tmp_path: Path) -> None:
+    """In-process: init --pack <invalid> exits non-zero and reports error."""
+    # Arrange - project root
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "fixture"\nversion = "0.1.0"\n'
+    )
+    # Act - invoke with invalid pack id
+    result = runner.invoke(
+        app,
+        ["init", "--root", str(tmp_path), "--pack", "nonexistent"],
+    )
+    # Assert - failure and helpful message
+    assert result.exit_code != 0
+    assert "not found" in result.output
+    assert "nonexistent" in result.output
