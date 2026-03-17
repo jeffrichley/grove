@@ -9,7 +9,10 @@ compatible_with = ["python"]
 activates_when = ["pyproject.toml"]
 
 [contributes]
-templates = []
+templates = [
+    "rules/python.md.j2",
+    "skills/python-testing.md.j2",
+]
 setup_questions = []
 
 # Path triggers for scoped rules (Grove Optimize: on-demand by path).

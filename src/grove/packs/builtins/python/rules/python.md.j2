@@ -1,0 +1,24 @@
+# Python project rules
+
+**When to load:** When working under paths that match this pack's triggers (e.g. `**/*.py`, `tests/**`, `src/**`).
+
+## Language & tooling
+
+- **Language:** {{ language | default("python") }}
+- **Package manager:** {{ package_manager | default("") }}
+- **Test framework:** {{ test_framework | default("") }}
+- **Tools:** {{ tools | default([]) | join(", ") or "none" }}
+
+## Conventions
+
+- Prefer `pathlib.Path` for paths.
+- Use absolute imports from the package root; no relative imports across top-level packages (per project ruff config).
+- Tests: pytest markers `@pytest.mark.unit` / `@pytest.mark.integration`; use `tmp_path` for temp dirs.
+- Type hints: full annotations; mypy strict (disallow_untyped_defs).
+
+## Commands
+
+- Format: `just format` or `ruff format`
+- Lint: `just lint` or `ruff check`
+- Types: `just types` or `mypy -p <package>`
+- Test: `just test` or `pytest`

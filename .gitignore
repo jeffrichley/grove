@@ -201,6 +201,9 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# Grove CLI generated output (from grove init)
+.grove/
+
 # Marimo
 marimo/_static/
 marimo/_lsp/
