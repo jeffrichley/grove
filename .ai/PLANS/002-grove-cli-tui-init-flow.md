@@ -2,19 +2,19 @@
 
 **Source:** Implements Phase 2 of [.ai/SPECS/001-grove-cli/PRD.md](../SPECS/001-grove-cli/PRD.md) (§12 Implementation Phases). Product and UX authority: that PRD (TUI flow §7, success criteria §11).
 
-The core engine (Plan 001) delivers flag-based `grove init`. This plan adds the **interactive TUI path** so users can run `grove init` without flags and step through welcome → analyze → pack selection → config → preview → conflicts → apply.
+The core engine (Plan 001) delivers flag-based `grove init`. This plan adds the **interactive TUI path** so users can run `grove configure` (or `grove init`, alias) without flags and step through welcome → analyze → pack selection → config → preview → conflicts → apply. Per PRD, the canonical command is `grove configure`; with no manifest this is the full setup flow; with an existing manifest, configure becomes the “manage” flow (Phase 3).
 
 ---
 
 ## Feature Description
 
-Add an interactive TUI (Textual) to `grove init`: multi-screen flow with shared setup state, driven by the existing analyzer, composer, and installer. Keep the existing flag-based path; when no `--pack` (or equivalent) is given and stdout is a TTY, launch the TUI. Deliverables: TUI screens (welcome, analyze, pack selection, pack config, preview, conflicts, finish), shared `SetupState`, and integration with the Phase 1 pipeline so the install matches the manifest.
+Add an interactive TUI (Textual) to `grove configure` / `grove init`: multi-screen flow with shared setup state, driven by the existing analyzer, composer, and installer. Keep the existing flag-based path; when no `--pack` (or equivalent) is given and stdout is a TTY, launch the TUI. Deliverables: TUI screens (welcome, analyze, pack selection, pack config, preview, conflicts, finish), shared `SetupState`, and integration with the Phase 1 pipeline so the install matches the manifest. (Canonical command: `grove configure`; `grove init` is an alias for this first-time / full-setup mode.)
 
 ---
 
 ## User Story
 
-As a developer adopting Grove  
+As a developer adopting Grove
 I want to run `grove init` with no arguments and complete a short TUI so that I get a minimal, correct Grove setup without editing files by hand or memorizing flags.
 
 ---
@@ -27,15 +27,15 @@ Phase 1 only supports flag-based init (`--root`, `--pack`, `--dry-run`). The PRD
 
 ## Solution Statement
 
-Introduce a Textual TUI app that: (1) shares state (e.g. `SetupState`: root, profile, selected packs, answers, plan); (2) implements the PRD’s first-time setup flow (welcome → repository analysis → core install → recommended packs → pack configuration → components preview → conflicts → final review → finish); (3) uses the existing analyzer, composer, renderer, and file_ops; (4) is invoked from the Typer `init` command when interactive mode is chosen (TTY + no conflicting flags). Retain all existing flag-based behavior.
+Introduce a Textual TUI app that: (1) shares state (e.g. `SetupState`: root, profile, selected packs, answers, plan); (2) implements the PRD’s first-time setup flow (welcome → repository analysis → core install → recommended packs → pack configuration → components preview → conflicts → final review → finish); (3) uses the existing analyzer, composer, renderer, and file_ops; (4) is invoked from the Typer `init` command (and later `configure`) when interactive mode is chosen (TTY + no conflicting flags). Retain all existing flag-based behavior.
 
 ---
 
 ## Feature Metadata
 
-**Feature Type:** New Capability  
-**Estimated Complexity:** High  
-**Primary Systems Affected:** `src/grove/cli/`, new `src/grove/tui/` (or equivalent), `pyproject.toml` (Textual dep)  
+**Feature Type:** New Capability
+**Estimated Complexity:** High
+**Primary Systems Affected:** `src/grove/cli/`, new `src/grove/tui/` (or equivalent), `pyproject.toml` (Textual dep)
 **Dependencies:** Plan 001 (core engine); Textual for TUI. PRD: [.ai/SPECS/001-grove-cli/PRD.md](../SPECS/001-grove-cli/PRD.md).
 
 ---
@@ -90,7 +90,7 @@ Add interactive Textual TUI to `grove init`; preserve existing flag-based path. 
 
 **Non-goals (this phase)**
 
-- `grove add`, `grove sync`, `grove manage` (Phase 3).
+- `grove add`, `grove sync`, `grove configure` when manifest exists (Phase 3).
 - Pack-contributed setup questions UI (can be stubbed or minimal; full dynamic questions in scope but not required for “all screens reachable”).
 - Headless/CI mode for TUI flow (optional integration test only).
 
@@ -98,10 +98,10 @@ Add interactive Textual TUI to `grove init`; preserve existing flag-based path. 
 
 - [x] Add Textual dependency; create `src/grove/tui/` (or agreed package) and app entry.
 - [x] Define `SetupState` (root, profile, selected pack ids, config answers, install plan, manifest) and pass through screens.
-- [ ] Implement TUI screens per PRD §7: Welcome → Repository analysis → Core install → Recommended packs → Pack configuration → Components preview → Conflicts → Final review → Finish. (Welcome done; rest deferred.)
-- [ ] Wire screens to analyzer (profile), composer (plan from selection + profile), and file_ops + manifest save (apply).
+- [x] Implement TUI screens per PRD §7: Welcome → Repository analysis → Core install → Recommended packs → Pack configuration → Components preview → Conflicts → Final review → Finish.
+- [x] Wire screens to analyzer (profile), composer (plan from selection + profile), and file_ops + manifest save (apply).
 - [x] From Typer `init`: detect TTY and absence of pack-selection flags; launch TUI when interactive, else keep current flag-based flow.
-- [ ] Manual validation: run `grove init` in a real repo; reach every screen; complete install; verify `.grove/` and manifest match choices.
+- [x] Manual validation: run `grove init` in a real repo; reach every screen; complete install; verify `.grove/` and manifest match choices.
 
 ---
 
@@ -119,7 +119,19 @@ Each page is a Textual `Screen`. Widgets are Textual built-ins; layout uses `Ver
 | 6 | **Components preview** | List folders/files to create, existing files, skills to generate; managed vs unmanaged. | **DataTable** or **Tree**: path, type (dir/file), status (new / exists / managed / seeded). **Static** summary: “X files to create, Y existing.” **Button**: “Next”, “Back”. **Footer**. |
 | 7 | **Conflicts** | For collisions: overwrite / keep existing / rename / diff. | Shown only if conflicts exist. **DataTable** or **List**: conflicting path + action. **Select** or **RadioSet** per row: Overwrite / Keep existing / Rename / Show diff. **Button**: “Apply choices”, “Back”. **Footer**. |
 | 8 | **Final review** | Summary; apply installation. | **Static** (markdown): summary (root, packs, file count, conflict resolution). **Button**: “Apply installation”, “Back”, “Quit”. **Footer**. |
-| 9 | **Finish** | Success message; next commands. | **Static** (markdown): “Grove initialized at …” and suggested next commands (`grove doctor`, `grove manage`, `grove sync`). **Button**: “Done” (exit app). **Footer**. |
+| 9 | **Finish** | Success message; next commands. | **Static** (markdown): “Grove initialized at …” and suggested next commands (`grove doctor`, `grove configure`, `grove sync`). **Button**: “Done” (exit app). **Footer**. |
+
+**Screen checklist**
+
+- [x] 1 — Welcome
+- [x] 2 — Repository analysis
+- [x] 3 — Core install
+- [x] 4 — Recommended packs
+- [x] 5 — Pack configuration
+- [x] 6 — Components preview
+- [x] 7 — Conflicts
+- [x] 8 — Final review
+- [x] 9 — Finish
 
 **Shared / app-level**
 
@@ -138,28 +150,33 @@ Each page is a Textual `Screen`. Widgets are Textual built-ins; layout uses `Ver
 - Unit tests for `SetupState` and any pure TUI logic that can be tested without a full TUI run.
 - Integration test: optional “headless” or fixture-driven path that exercises the same flow as TUI (e.g. state machine or screen sequence) without displaying.
 - Final gate: `just quality && just test`.
-- PRD validation: manual run of `grove init` in a real repo; all screens reachable; install matches manifest (per PRD Phase 2 validation).
+- PRD validation: manual run of `grove configure` or `grove init` in a real repo; all screens reachable; install matches manifest (per PRD Phase 2 validation).
 
 ---
 
 ## Definition of Visible Done
 
-- A human can run `grove init` (no args) in a terminal, see the TUI, move through welcome → analysis → pack selection → config → preview → conflicts (if any) → apply, and end with a valid `.grove/` and `manifest.toml` that reflect their choices.
-- `grove init --root . --pack base --pack python` (or `--dry-run`) still works as today (flag-based, no TUI).
+- A human can run `grove configure` or `grove init` (no args) in a terminal, see the TUI, move through welcome → analysis → pack selection → config → preview → conflicts (if any) → apply, and end with a valid `.grove/` and `manifest.toml` that reflect their choices.
+- `grove init --root . --pack base --pack python` (or `--dry-run`) still works as today (flag-based, no TUI). When the CLI is extended with `grove configure`, init remains an alias for configure (no-manifest / full-setup mode).
 
 ---
 
 ## Execution Report
 
+### 2026-03-17 — Phase 2 complete (full TUI flow)
+
+- **Branch:** `feat/002-grove-cli-tui-init-flow` (per Branch Setup).
+- **Completed:**
+  - All 9 TUI screens: Welcome, Repository analysis, Core install, Recommended packs, Pack configuration, Components preview, Conflicts (if any), Final review, Finish.
+  - SetupState extended with conflict_choices, init provenance; state passed through all screens; analyzer, composer, file_ops, manifest save wired.
+  - Final review Apply: builds manifest (with InitProvenance), calls file_ops.apply with collision_overrides from conflict_choices, saves manifest, pushes Finish screen.
+  - file_ops.apply extended with optional collision_overrides for per-path strategy (overwrite / skip / rename).
+  - Provenance: init choices stored in manifest `[init]` for re-run prefill; setup_state_from_manifest used on TUI startup.
+- **Validation:** `just quality && just test` — all pass. Manual: `grove init` (no args) in a TTY runs full flow; flag-based `grove init --pack base --pack python` unchanged.
+- **Artifacts:** `src/grove/tui/*` (app, state, screens 1–9, CSS), `src/grove/cli/app.py`, `src/grove/core/file_ops.py` (collision_overrides), `tests/unit/tui/test_state.py`, `pyproject.toml` (textual).
+
 ### 2026-03-17 — Phase 2 first slice (branch, TUI skeleton, init wiring)
 
 - **Branch:** `feat/002-grove-cli-tui-init-flow` created per Branch Setup.
-- **Completed:**
-  - Added Textual dependency (`textual>=0.80.0`); created `src/grove/tui/` with `app.py`, `state.py`, `screens/welcome.py`, `screens/__init__.py`.
-  - Defined `SetupState` (root, install_root, profile, selected_pack_ids, config_answers, install_plan, manifest) in `grove/tui/state.py`; passed into Welcome screen and app.
-  - Implemented Welcome screen (blurb, repo root input, existing-manifest notice, Next/Quit); app pushes Welcome on mount.
-  - From Typer `init`: when `pack is None` and `sys.stdout.isatty()`, run `GroveInitApp(SetupState(...)).run()`; else `_run_init_flag_based(...)`. Refactored flag-based flow into `_run_init_flag_based` to keep complexity gate (xenon).
-  - Unit tests: `tests/unit/tui/test_state.py` for SetupState (defaults, root/install_root, round-trip).
-- **Validation:** `just quality && just test` — all passed (65 tests including 3 new TUI state tests).
-- **Not done this slice:** Remaining 8 TUI screens (Analysis → Finish), wiring Welcome/others to analyzer and composer, full manual run through all screens.
+- **Completed:** Textual dependency; `src/grove/tui/` with app, state, Welcome screen; TTY + flag check in Typer init; unit tests for SetupState.
 - **Artifacts:** `src/grove/tui/*`, `src/grove/cli/app.py` (TUI branch + refactor), `tests/unit/tui/test_state.py`, `pyproject.toml` (textual dep).

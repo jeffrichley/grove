@@ -1,7 +1,9 @@
 """Textual app for grove init: holds state and drives screen flow."""
 
+from pathlib import Path
+from typing import ClassVar
+
 from textual.app import App, ComposeResult
-from textual.widgets import Footer, Header
 
 from grove.tui.screens.welcome import WelcomeScreen
 from grove.tui.state import SetupState
@@ -10,10 +12,15 @@ from grove.tui.state import SetupState
 class GroveInitApp(App[None]):
     """TUI for interactive grove init: welcome -> analysis -> ... -> finish."""
 
-    TITLE = "Grove init"
-    BINDINGS = [  # noqa: RUF012
+    TITLE = "▸ Grove init"
+    CSS_PATH = str(Path(__file__).parent / "grove_init.tcss")
+    BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
         ("q", "quit", "Quit"),
+        ("escape", "quit", "Quit"),
     ]
+
+    # Total steps in the flow (for step indicator)
+    TOTAL_STEPS = 9
 
     def __init__(self, state: SetupState | None = None) -> None:
         """Initialize app with optional setup state.
@@ -25,13 +32,12 @@ class GroveInitApp(App[None]):
         self.setup_state = state if state is not None else SetupState()
 
     def compose(self) -> ComposeResult:
-        """Compose app layout: header and footer (first screen pushed in on_mount).
+        """Compose app: no widgets; the pushed screen provides all content.
 
         Yields:
-            Header and Footer widgets.
+            Nothing; the pushed screen provides content.
         """
-        yield Header(show_clock=False)
-        yield Footer()
+        yield from ()  # app has no widgets; pushed screen provides content
 
     def on_mount(self) -> None:
         """Push the first screen (Welcome)."""

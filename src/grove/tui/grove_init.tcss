@@ -1,0 +1,350 @@
+/* Grove init TUI — clean, OpenClaw-inspired wizard styling */
+
+/* Base screen: content only */
+GroveBaseScreen {
+  height: 100%;
+  layout: vertical;
+}
+
+GroveBaseScreen > VerticalScroll {
+  height: 1fr;
+  min-height: 0;
+  scrollbar-size: 1 1;
+}
+
+/* Panel border title uses ○ (hollow circle) in code */
+#welcome-content {
+  width: 70;
+  height: auto;
+  margin: 2 4;
+  padding: 2 3;
+  background: $panel;
+  color: $text;
+  border: tall $primary 40%;
+  border-title-align: left;
+  border-subtitle-align: right;
+}
+
+#welcome-content:focus {
+  border: tall $primary;
+}
+
+/* Step indicator above panel */
+.step-indicator {
+  text-style: dim;
+  margin-bottom: 1;
+  color: $text-muted;
+}
+
+/* Welcome markdown: body and theme quote */
+#welcome-markdown {
+  height: auto;
+  padding: 0 0 1 0;
+  margin-bottom: 1;
+}
+
+/* Root label (markdown bold) */
+#root-label {
+  height: auto;
+  margin-top: 1;
+  padding: 0;
+}
+
+/* Input field for path */
+#root-input {
+  margin-top: 0;
+  padding: 0 1;
+  border: solid $primary 50%;
+  min-height: 3;
+}
+
+#root-input:focus {
+  border: solid $primary;
+}
+
+/* Notice when .grove already exists */
+#welcome-content .notice {
+  margin: 1 0;
+  padding: 1 2;
+  background: $warning 20%;
+  color: $warning;
+  border: solid $warning 50%;
+}
+
+/* Action radio set inside panel */
+#action-radios {
+  margin-top: 2;
+  padding-top: 1;
+  border-top: solid $primary 25%;
+  width: 100%;
+}
+
+/* Analysis screen panel (reuse welcome-style panel) */
+#analysis-content {
+  width: 70;
+  height: auto;
+  margin: 2 4;
+  padding: 2 3;
+  background: $panel;
+  color: $text;
+  border: tall $primary 40%;
+  border-title-align: left;
+}
+
+#analysis-content:focus {
+  border: tall $primary;
+}
+
+#profile-display {
+  height: auto;
+  margin: 0 0 2 0;
+  padding: 0;
+}
+
+#analysis-content #action-radios {
+  margin-top: 2;
+  padding-top: 1;
+  border-top: solid $primary 25%;
+  width: 100%;
+}
+
+/* Core install screen panel */
+#core-install-content {
+  width: 70;
+  height: auto;
+  margin: 2 4;
+  padding: 2 3;
+  background: $panel;
+  color: $text;
+  border: tall $primary 40%;
+  border-title-align: left;
+}
+
+#core-install-content:focus {
+  border: tall $primary;
+}
+
+#core-base-message {
+  height: auto;
+  margin-bottom: 1;
+  padding: 0;
+}
+
+#core-root-label {
+  height: auto;
+  margin-top: 1;
+  padding: 0;
+}
+
+#core-install-root-input {
+  margin-top: 0;
+  padding: 0 1;
+  border: solid $primary 50%;
+  min-height: 3;
+}
+
+#core-install-root-input:focus {
+  border: solid $primary;
+}
+
+#core-toggles-label {
+  height: auto;
+  margin-top: 2;
+  margin-bottom: 1;
+  padding: 0;
+}
+
+#core-options-list {
+  height: auto;
+  max-height: 12;
+  margin-top: 0;
+  padding: 0 1;
+  border: solid $primary 50%;
+}
+
+#core-install-content #action-radios {
+  margin-top: 2;
+  padding-top: 1;
+  border-top: solid $primary 25%;
+  width: 100%;
+}
+
+/* Recommended packs screen panel */
+#recommended-packs-content {
+  width: 70;
+  height: auto;
+  margin: 2 4;
+  padding: 2 3;
+  background: $panel;
+  color: $text;
+  border: tall $primary 40%;
+  border-title-align: left;
+}
+
+#recommended-packs-content:focus {
+  border: tall $primary;
+}
+
+#packs-required-message {
+  height: auto;
+  margin-bottom: 1;
+  padding: 0;
+}
+
+#packs-optional-label {
+  height: auto;
+  margin-top: 2;
+  margin-bottom: 1;
+  padding: 0;
+}
+
+#packs-optional-list {
+  height: auto;
+  max-height: 12;
+  margin-top: 0;
+  padding: 0 1;
+  border: solid $primary 50%;
+}
+
+#recommended-packs-content #action-radios {
+  margin-top: 2;
+  padding-top: 1;
+  border-top: solid $primary 25%;
+  width: 100%;
+}
+
+/* Pack configuration screen panel */
+#pack-config-content {
+  width: 70;
+  height: auto;
+  margin: 2 4;
+  padding: 2 3;
+  background: $panel;
+  color: $text;
+  border: tall $primary 40%;
+  border-title-align: left;
+}
+
+#pack-config-content:focus {
+  border: tall $primary;
+}
+
+#pack-config-intro {
+  height: auto;
+  margin-bottom: 2;
+  padding: 0;
+}
+
+#pack-config-none {
+  height: auto;
+  margin: 1 0;
+  padding: 0;
+}
+
+#pack-config-content #action-radios {
+  margin-top: 2;
+  padding-top: 1;
+  border-top: solid $primary 25%;
+  width: 100%;
+}
+
+/* Components preview screen panel */
+#components-preview-content {
+  width: 70;
+  height: auto;
+  margin: 2 4;
+  padding: 2 3;
+  background: $panel;
+  color: $text;
+  border: tall $primary 40%;
+  border-title-align: left;
+}
+
+#components-preview-list {
+  height: auto;
+  max-height: 20;
+  margin-bottom: 2;
+  padding: 0;
+}
+
+#components-preview-content #action-radios {
+  margin-top: 2;
+  padding-top: 1;
+  border-top: solid $primary 25%;
+  width: 100%;
+}
+
+/* Conflicts screen panel */
+#conflicts-content {
+  width: 70;
+  height: auto;
+  margin: 2 4;
+  padding: 2 3;
+  background: $panel;
+  color: $text;
+  border: tall $primary 40%;
+  border-title-align: left;
+}
+
+#conflicts-intro {
+  height: auto;
+  margin-bottom: 2;
+  padding: 0;
+}
+
+#conflicts-content #action-radios {
+  margin-top: 2;
+  padding-top: 1;
+  border-top: solid $primary 25%;
+  width: 100%;
+}
+
+/* Final review screen panel */
+#final-review-content {
+  width: 70;
+  height: auto;
+  margin: 2 4;
+  padding: 2 3;
+  background: $panel;
+  color: $text;
+  border: tall $primary 40%;
+  border-title-align: left;
+}
+
+#final-review-summary {
+  height: auto;
+  margin-bottom: 2;
+  padding: 0;
+}
+
+#final-review-content #action-radios {
+  margin-top: 2;
+  padding-top: 1;
+  border-top: solid $primary 25%;
+  width: 100%;
+}
+
+/* Finish screen panel */
+#finish-content {
+  width: 70;
+  height: auto;
+  margin: 2 4;
+  padding: 2 3;
+  background: $panel;
+  color: $text;
+  border: tall $primary 40%;
+  border-title-align: left;
+}
+
+#finish-message {
+  height: auto;
+  margin-bottom: 2;
+  padding: 0;
+}
+
+#finish-content #action-radios {
+  margin-top: 2;
+  padding-top: 1;
+  border-top: solid $primary 25%;
+  width: 100%;
+}

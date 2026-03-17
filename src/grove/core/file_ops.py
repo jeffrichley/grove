@@ -100,18 +100,20 @@ def apply(
     manifest: ManifestState,
     options: ApplyOptions,
     pack_roots: dict[str, Path],
+    collision_overrides: dict[str, CollisionStrategy] | None = None,
 ) -> ManifestState:
     """Write planned files to disk and return updated manifest.
 
     When a destination path already exists, behavior is determined by
-    options.collision_strategy (overwrite / skip / rename). The strategy
-    is required in ApplyOptions; no silent overwrite.
+    collision_overrides[path_key] if provided, else options.collision_strategy.
+    path_key is the destination path relative to install_root (posix).
 
     Args:
         plan: Install plan with install_root and files.
         manifest: Current manifest state; will be updated with generated_files.
-        options: dry_run and collision_strategy.
+        options: dry_run and default collision_strategy.
         pack_roots: Map pack_id -> absolute path to pack root.
+        collision_overrides: Optional per-path strategy (overwrite | skip | rename).
 
     Returns:
         Updated ManifestState with generated_files reflecting written paths
@@ -123,6 +125,7 @@ def apply(
     if options.dry_run:
         return manifest
 
+    overrides = collision_overrides or {}
     install_root = plan.install_root.resolve()
     generated: list[GeneratedFileRecord] = []
 
@@ -137,11 +140,13 @@ def apply(
         content = render(template_path, planned.variables)
         dst = planned.dst if planned.dst.is_absolute() else install_root / planned.dst
         dst = dst.resolve()
+        path_key = planned.dst.as_posix() if not planned.dst.is_absolute() else str(dst)
+        strategy = overrides.get(path_key, options.collision_strategy)
 
         if dst.exists():
-            if options.collision_strategy == "skip":
+            if strategy == "skip":
                 continue
-            if options.collision_strategy == "rename":
+            if strategy == "rename":
                 dst = _next_available_path(dst)
             # overwrite: fall through
         else:

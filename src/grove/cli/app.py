@@ -4,6 +4,7 @@ import sys
 from importlib.metadata import version
 from importlib.resources import as_file, files
 from pathlib import Path
+from typing import Annotated
 
 import typer
 
@@ -13,12 +14,14 @@ from grove.core.file_ops import ApplyOptions
 from grove.core.manifest import MANIFEST_SCHEMA_VERSION
 from grove.core.models import (
     GroveSection,
+    InitProvenance,
     InstalledPackRecord,
     ManifestState,
     ProjectSection,
 )
 from grove.core.registry import discover_packs
-from grove.tui import GroveInitApp, SetupState
+from grove.tui import GroveInitApp
+from grove.tui.state import setup_state_from_manifest
 
 app = typer.Typer(help="Grove: context engineering for AI-assisted development.")
 
@@ -40,10 +43,14 @@ def _callback(
 def _run_init_tui(root: Path) -> None:
     """Launch interactive TUI for grove init.
 
+    If .grove/manifest.toml exists, prefill state from it (packs, install root,
+    core options) so Recommended packs and Core install show previous choices.
+
     Args:
         root: Resolved project root directory.
     """
-    state = SetupState(root=root, install_root=root / ".grove")
+    manifest_path = root / ".grove" / "manifest.toml"
+    state = setup_state_from_manifest(manifest_path, root)
     GroveInitApp(state).run()
 
 
@@ -83,6 +90,8 @@ def _run_init_flag_based(
     plan = compose(profile, selected, install_root, packs)
 
     grove_version = version("grove")
+    # Store install root as relative for portable provenance
+    install_root_provenance = ".grove"
     manifest = ManifestState(
         grove=GroveSection(
             version=grove_version, schema_version=MANIFEST_SCHEMA_VERSION
@@ -97,6 +106,14 @@ def _run_init_flag_based(
             if p.id in selected
         ],
         generated_files=[],
+        init_provenance=InitProvenance(
+            install_root=install_root_provenance,
+            core_include_adrs=True,
+            core_include_handoffs=True,
+            core_include_scoped_rules=True,
+            core_include_memory=True,
+            core_include_skills_dir=True,
+        ),
     )
 
     options = ApplyOptions(dry_run=dry_run, collision_strategy="overwrite")
@@ -134,23 +151,25 @@ def _analysis_summary(profile: object) -> str:
 
 @app.command()
 def init(
-    root: Path = typer.Option(  # noqa: B008
-        Path.cwd(),  # noqa: B008
-        "--root",
-        "-r",
-        help="Project root (default: current directory).",
-    ),
-    pack: list[str] | None = typer.Option(  # noqa: B008
-        None,
-        "--pack",
-        "-p",
-        help="Pack(s) to install (default: base, python).",
-    ),
-    dry_run: bool = typer.Option(
-        False,
-        "--dry-run",
-        help="Do not write files; only report what would be done.",
-    ),
+    root: Annotated[
+        Path | None,
+        typer.Option("--root", "-r", help="Project root (default: current directory)."),
+    ] = None,
+    pack: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--pack",
+            "-p",
+            help="Pack(s) to install (default: base, python).",
+        ),
+    ] = None,
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run",
+            help="Do not write files; only report what would be done.",
+        ),
+    ] = False,
 ) -> None:
     """Initialize .grove/ with Base Pack and optional capability packs.
 
@@ -166,6 +185,8 @@ def init(
     Raises:
         Exit: On validation error (e.g. root not a dir, unknown pack) via typer.Exit.
     """
+    if root is None:
+        root = Path.cwd()
     root = Path(root).resolve()
     if not root.is_dir():
         typer.echo(f"Error: root is not a directory: {root}", err=True)
