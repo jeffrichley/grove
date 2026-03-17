@@ -1,0 +1,20 @@
+# Python capability pack: rules and templates for Python/uv/pytest repos.
+# Depends on base for .grove layout.
+
+id = "python"
+name = "Python Pack"
+version = "0.1.0"
+depends_on = ["base"]
+compatible_with = ["python"]
+activates_when = ["pyproject.toml"]
+
+[contributes]
+templates = [
+    "rules/python.md.j2",
+    "skills/python-testing.md.j2",
+]
+setup_questions = []
+
+# Path triggers for scoped rules (Grove Optimize: on-demand by path).
+[[contributes.rules]]
+paths = ["**/*.py", "tests/**", "src/**"]

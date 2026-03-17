@@ -1,0 +1,27 @@
+# Skill: Python testing (pytest)
+
+**Use when:** The user asks how to run tests, write pytest tests, or configure pytest for this project.
+
+## Quick run
+
+```bash
+uv run pytest
+# or
+just test
+```
+
+## Structure
+
+- Tests live under `tests/` (unit, integration, e2e).
+- Use `tmp_path` for temporary directories; avoid hardcoded paths.
+- Markers: `@pytest.mark.unit`, `@pytest.mark.integration`, `@pytest.mark.e2e`.
+
+## Config
+
+- Pytest config: `[tool.pytest.ini_options]` in pyproject.toml or `pytest.ini`.
+- Test discovery: `testpaths = ["tests"]`, `pythonpath = ["src"]` (adjust per project).
+
+## Fixtures
+
+- Use conftest.py for shared fixtures.
+- Prefer dependency injection over global state.

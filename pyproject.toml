@@ -1,0 +1,137 @@
+[project]
+name = "grove"
+version = "0.1.0"
+description = "Modular skill framework for AI coding agents that orchestrates the software development lifecycle."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "jinja2>=3.1.0",
+    "pydantic>=2.0",
+    "tomli-w>=1.0.0",
+    "typer>=0.15.0",
+]
+
+[project.scripts]
+grove = "grove.cli.app:main"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.1",
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.8.0",
+    "xenon>=0.9.3",
+    "vulture>=2.11",
+    "darglint>=1.8",
+    "bandit[toml]>=1.7",
+    "pip-audit>=2.6",
+    "pylint>=3.0",
+    "radon>=6.0",
+    "commitizen>=3.0",
+    "docstr-coverage>=2.3",
+    "pre-commit>=4.0",
+    "pytest-xdist>=3.8.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatchling.build]
+packages = ["src/grove"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+    "unit: Unit tests that test individual components in isolation",
+    "integration: Integration tests that test multiple components together",
+    "e2e: End-to-end tests that exercise full user journeys",
+    "slow: Tests that take a long time to run",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "F",      # pyflakes
+    "I",      # isort
+    "N",      # pep8-naming
+    "B",      # flake8-bugbear
+    "Q",      # flake8-quotes
+    "SIM",    # flake8-simplify
+    "C90",    # mccabe complexity
+    "ARG",    # flake8-unused-arguments
+    "TID",    # flake8-tidy-imports
+    "UP",     # pyupgrade
+    "PL",     # pylint
+    "PERF",   # perflint
+    "D",      # pydocstyle
+    "ANN",    # flake8-annotations
+    "RUF",    # ruff-specific
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["PLR2004"]
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "src"
+warn_return_any = true
+warn_unused_configs = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+packages = ["grove"]
+
+[tool.coverage.run]
+source = ["src/grove"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == '__main__':",
+    "if TYPE_CHECKING:",
+]
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.xenon]
+max-absolute = "B"
+max-modules = "A"
+max-average = "A"
+
+[tool.vulture]
+paths = ["src", "tests"]
+exclude = [".venv", "htmlcov", "**/__pycache__"]
+min_confidence = 80
+ignore_names = ["*Protocol*", "Protocol"]
+
+[tool.bandit]
+exclude_dirs = [".venv", "htmlcov", "__pycache__"]
+skips = ["B101"]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version_provider = "pep621"
+update_changelog_on_bump = true
