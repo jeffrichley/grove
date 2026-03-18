@@ -94,9 +94,20 @@ quality-check: format-check lint-check types complexity vulture darglint audit b
 # Lighter target for day-to-day development
 quality-dev: format lint types darglint
 
-# No-op: docs validation (replace with real validator when needed)
+# Build documentation (MkDocs). Fails on broken links etc.
+docs-build:
+    uv run mkdocs build
+
+# Serve documentation locally and watch for changes (live reload). Requires dev deps: uv sync --all-groups
+docs-serve:
+    uv run mkdocs serve
+
+# Alias: serve docs with live reload (same as docs-serve)
+docs-watch: docs-serve
+
+# Validate docs: strict build (warnings as errors)
 docs-check:
-    uv run python -c "exit(0)"
+    uv run mkdocs build --strict
 
 # No-op: status summary (replace with real script when needed)
 status:

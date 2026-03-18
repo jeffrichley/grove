@@ -201,6 +201,10 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# Agent / workflow scratch (local only)
+.pr-body.md
+.ai/HANDOFF.md
+
 # Grove CLI generated output (from grove init)
 .grove/
 

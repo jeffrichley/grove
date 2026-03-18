@@ -247,7 +247,7 @@ MVP is a CLI/TUI product; no REST API. Internal “API” is the service layer c
 ### Phase 4: Polish and packaging
 
 - **Goal:** Robustness, docs, and distribution.
-- **Deliverables:** ✅ Error handling and clear messages; ✅ User-facing docs (README, command help); ✅ Pack author guide (pack.toml schema, template conventions); ✅ Optional `grove doctor` stub.
+- **Deliverables:** ✅ Error handling and clear messages; ✅ User-facing docs (README, command help); ✅ Pack author guide (pack.toml schema, template conventions). No doctor stub—doctor is post-MVP when it has real behavior.
 - **Validation:** New contributor can add a new pack following the guide; CLI installable via uv/pip.
 
 ---

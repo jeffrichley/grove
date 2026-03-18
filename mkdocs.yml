@@ -1,0 +1,64 @@
+# MkDocs configuration for Grove documentation
+# Serve locally: uv run mkdocs serve
+# Build: uv run mkdocs build
+
+site_name: Grove
+site_description: Modular skill framework for AI coding agents — context engineering and lifecycle management
+site_url: https://github.com/jeffrichley/grove
+repo_url: https://github.com/jeffrichley/grove
+repo_name: jeffrichley/grove
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  language: en
+  palette:
+    - scheme: default
+      primary: green
+      accent: teal
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: green
+      accent: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+
+nav:
+  - Home: index.md
+  - Concept:
+    - GROVE framework: concept.md
+  - User guide:
+    - CLI reference: cli.md
+    - Pack author guide: pack-author-guide.md
+  - Development:
+    - Roadmap: dev/roadmap.md
+    - Status: dev/status.md
+    - Debt tracker: dev/debt/debt_tracker.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - tables
+  - toc:
+      permalink: true
