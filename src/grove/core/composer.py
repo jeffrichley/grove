@@ -5,6 +5,7 @@ from pathlib import Path
 from grove.core.injections import RenderedInjection, assemble_injections
 from grove.core.markers import find_anchor_ranges
 from grove.core.models import (
+    InjectionProvenance,
     InjectionSpec,
     InstallPlan,
     PackManifest,
@@ -168,7 +169,8 @@ def _compose_file(
     )
     return planned.model_copy(
         update={
-            "rendered_content": assemble_injections(base_content, rendered_injections)
+            "rendered_content": assemble_injections(base_content, rendered_injections),
+            "anchor_provenance": _build_anchor_provenance(applicable),
         }
     )
 
@@ -197,6 +199,33 @@ def _render_injections(
         )
         for spec in injections
     ]
+
+
+def _build_anchor_provenance(
+    injections: list[InjectionSpec],
+) -> dict[str, list[InjectionProvenance]]:
+    """Build ordered provenance entries for each anchor in one planned file.
+
+    Provenance is derived from injection specs during composition so sync can
+    report ownership of changed anchor bodies without scraping rendered output.
+
+    Args:
+        injections: Injection specs applicable to one output file.
+
+    Returns:
+        Provenance entries keyed by anchor name, ordered by injection order and id.
+    """
+    provenance: dict[str, list[InjectionProvenance]] = {}
+    for spec in sorted(injections, key=lambda item: (item.order, item.id)):
+        provenance.setdefault(spec.anchor, []).append(
+            InjectionProvenance(
+                pack_id=spec.pack_id,
+                injection_id=spec.id,
+                anchor=spec.anchor,
+                order=spec.order,
+            )
+        )
+    return provenance
 
 
 def _validate_injection_matches(

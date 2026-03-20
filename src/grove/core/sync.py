@@ -8,10 +8,13 @@ from grove.core.file_ops import render_planned_file
 from grove.core.manifest import load_manifest
 from grove.core.markers import MarkerRange, find_anchor_ranges, find_user_regions
 from grove.core.models import (
+    AnchorSyncChange,
+    InjectionProvenance,
     ManifestState,
     PackManifest,
     PlannedFile,
     ProjectProfile,
+    SyncFileChange,
 )
 from grove.core.registry import get_builtin_pack_roots_and_packs
 from grove.core.tool_hooks import apply_tool_hooks
@@ -43,7 +46,7 @@ def sync_managed(
     packs: list[PackManifest],
     *,
     dry_run: bool = False,
-) -> list[str]:
+) -> list[SyncFileChange]:
     """Re-render and write only paths listed in manifest.generated_files.
 
     Loads no packs; caller must pass packs (e.g. from discover_packs).
@@ -58,7 +61,7 @@ def sync_managed(
         dry_run: If True, do not write files; return paths that would be written.
 
     Returns:
-        List of paths (relative, posix) in manifest.generated_files that were
+        File change records in manifest.generated_files that were
         (or would be) written.
 
     Raises:
@@ -69,10 +72,11 @@ def sync_managed(
         manifest.init_provenance.install_root if manifest.init_provenance else ".grove"
     )
     install_root = install_root.resolve()
+    project_root = Path(manifest.project.root).resolve()
     selected = [p.id for p in manifest.installed_packs]
     plan = compose(profile, selected, install_root, packs)
     generated_set = {g.path for g in manifest.generated_files}
-    written: list[str] = []
+    written: list[SyncFileChange] = []
     for planned in plan.files:
         rel_posix = _rel_posix(planned, install_root)
         if rel_posix not in generated_set:
@@ -83,16 +87,24 @@ def sync_managed(
         next_content = _sync_target_content(current_content, desired_content)
         if current_content == next_content:
             continue
+        file_change = SyncFileChange(
+            path=_path_relative_to_project_root(dst, project_root),
+            anchors=_describe_anchor_changes(
+                current_content,
+                desired_content,
+                planned.anchor_provenance,
+            ),
+        )
         if dry_run:
-            written.append(rel_posix)
+            written.append(file_change)
             continue
         dst.parent.mkdir(parents=True, exist_ok=True)
         dst.write_text(next_content, encoding="utf-8")
-        written.append(rel_posix)
+        written.append(file_change)
     return written
 
 
-def run_sync(root: Path, dry_run: bool = False) -> list[str]:
+def run_sync(root: Path, dry_run: bool = False) -> list[SyncFileChange]:
     """Load manifest, re-render managed files; return paths written.
 
     Uses builtin packs and analyzer on root. Call when .grove/manifest.toml
@@ -103,7 +115,7 @@ def run_sync(root: Path, dry_run: bool = False) -> list[str]:
         dry_run: If True, do not write files; return paths that would be written.
 
     Returns:
-        List of paths (relative, posix) written or that would be written.
+        File change records written or that would be written.
 
     Raises:
         GroveManifestError: Manifest missing, invalid, or pack not in builtins.
@@ -124,7 +136,14 @@ def run_sync(root: Path, dry_run: bool = False) -> list[str]:
             profile,
             dry_run=dry_run,
         )
-        return written + [path for path in hook_writes if path not in written]
+        combined = list(written)
+        seen_paths = {change.path for change in combined}
+        for path in hook_writes:
+            if path in seen_paths:
+                continue
+            combined.append(SyncFileChange(path=path))
+            seen_paths.add(path)
+        return combined
     except (KeyError, ValueError) as e:
         raise GroveManifestError(str(e)) from e
 
@@ -224,6 +243,68 @@ def _replace_anchor_bodies(
             + output[_body_end(current_range) :]
         )
     return output
+
+
+def _describe_anchor_changes(
+    current: str | None,
+    desired: str,
+    anchor_provenance: dict[str, list[InjectionProvenance]],
+) -> list[AnchorSyncChange]:
+    """Return changed anchor bodies plus their provenance.
+
+    The sync rewrite boundary is the full body of each `grove:anchor:*` region.
+    Provenance therefore comes from composition metadata rather than on-disk
+    markers, because rendered files intentionally do not include per-injection
+    wrapper blocks.
+
+    Args:
+        current: Existing file content on disk, if any.
+        desired: Newly composed desired file content.
+        anchor_provenance: Provenance entries keyed by anchor name for the file.
+
+    Returns:
+        Ordered changed anchor descriptors for dry-run reporting.
+    """
+    desired_anchors = find_anchor_ranges(desired)
+    if not desired_anchors:
+        return []
+    current_anchors = find_anchor_ranges(current) if current is not None else {}
+    changes: list[AnchorSyncChange] = []
+    for anchor_name, desired_range in sorted(
+        desired_anchors.items(),
+        key=lambda item: item[1].start,
+    ):
+        current_range = current_anchors.get(anchor_name)
+        desired_body = _body(desired, desired_range)
+        current_body = (
+            "" if current_range is None else _body(current or "", current_range)
+        )
+        if current_range is not None and current_body == desired_body:
+            continue
+        changes.append(
+            AnchorSyncChange(
+                anchor=anchor_name,
+                provenance=list(anchor_provenance.get(anchor_name, [])),
+            )
+        )
+    return changes
+
+
+def _path_relative_to_project_root(path: Path, project_root: Path) -> str:
+    """Return a path relative to the project root when possible.
+
+    Args:
+        path: Absolute path to report.
+        project_root: Absolute project root used as the reporting base.
+
+    Returns:
+        Project-root-relative path when nested under the root, else absolute path.
+    """
+    resolved = path.resolve()
+    try:
+        return resolved.relative_to(project_root).as_posix()
+    except ValueError:
+        return str(resolved)
 
 
 def _body(content: str, marker_range: MarkerRange) -> str:

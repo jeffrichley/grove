@@ -305,12 +305,18 @@ def sync(
 
     if dry_run:
         typer.echo("Dry run: would write:")
-        for p in written:
-            typer.echo(f"  {p}")
+        for change in written:
+            typer.echo(f"  {change.path}")
+            for anchor_change in change.anchors:
+                typer.echo(f"    anchor: {anchor_change.anchor}")
+                for provenance in anchor_change.provenance:
+                    typer.echo(
+                        f"      from {provenance.pack_id}:{provenance.injection_id}"
+                    )
     elif written:
         typer.echo("Updated:")
-        for p in written:
-            typer.echo(f"  {p}")
+        for change in written:
+            typer.echo(f"  {change.path}")
     else:
         typer.echo("No files to update.")
 

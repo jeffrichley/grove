@@ -193,9 +193,16 @@ def test_compose_renders_injected_content_into_target_file(tmp_path: Path) -> No
     assert "Injected guidance" in grove_file.rendered_content
     assert "Injected guidance" in index_file.rendered_content
     assert "<!-- grove:managed:" not in grove_file.rendered_content
+    assert [item.injection_id for item in grove_file.anchor_provenance["guidance"]] == [
+        "python-guidance"
+    ]
     assert "### Python Rules" in index_file.rendered_content
     assert "### Python Testing" in index_file.rendered_content
     assert "When to use: Use when editing Python code." in index_file.rendered_content
+    assert [item.injection_id for item in index_file.anchor_provenance["rules"]] == [
+        "python-rules",
+        "python-testing",
+    ]
     assert index_file.rendered_content.index(
         "### Python Rules"
     ) < index_file.rendered_content.index("### Python Testing")
