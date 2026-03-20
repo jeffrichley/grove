@@ -58,7 +58,7 @@ def load_pack_manifest(pack_root: Path) -> PackManifest:
     with manifest_path.open("rb") as f:
         data = tomllib.load(f)
 
-    return _parse_pack_toml(data)
+    return _parse_pack_toml(data, pack_root)
 
 
 def _get_str(data: dict[str, object], key: str, default: str = "") -> str:
@@ -111,11 +111,12 @@ def _get_contributes(data: dict[str, object]) -> dict[str, object]:
     return {}
 
 
-def _parse_pack_toml(data: object) -> PackManifest:
+def _parse_pack_toml(data: object, pack_root: Path) -> PackManifest:
     """Parse TOML data into PackManifest. Validates required fields.
 
     Args:
         data: Parsed TOML (dict from tomllib.load).
+        pack_root: Absolute pack root directory for template resolution.
 
     Returns:
         Validated PackManifest.
@@ -137,6 +138,7 @@ def _parse_pack_toml(data: object) -> PackManifest:
         compatible_with=_get_list(d, "compatible_with"),
         activates_when=_get_list(d, "activates_when"),
         contributes=_get_contributes(d),
+        root_dir=pack_root,
     )
 
 

@@ -11,6 +11,7 @@ from grove.core.models import (
     GeneratedFileRecord,
     InstallPlan,
     ManifestState,
+    PlannedFile,
 )
 from grove.core.renderer import render
 
@@ -78,14 +79,7 @@ def preview(
     """
     result: list[tuple[Path, str]] = []
     for planned in plan.files:
-        root = pack_roots.get(planned.pack_id)
-        if root is None:
-            raise KeyError(
-                f"Pack id '{planned.pack_id}' not in pack_roots; "
-                f"keys: {sorted(pack_roots.keys())}"
-            )
-        template_path = (root / planned.src).resolve()
-        content = render(template_path, planned.variables)
+        content = render_planned_file(planned, pack_roots)
         dst = (
             planned.dst
             if planned.dst.is_absolute()
@@ -130,14 +124,7 @@ def apply(
     generated: list[GeneratedFileRecord] = []
 
     for planned in plan.files:
-        root = pack_roots.get(planned.pack_id)
-        if root is None:
-            raise KeyError(
-                f"Pack id '{planned.pack_id}' not in pack_roots; "
-                f"keys: {sorted(pack_roots.keys())}"
-            )
-        template_path = (root / planned.src).resolve()
-        content = render(template_path, planned.variables)
+        content = render_planned_file(planned, pack_roots)
         dst = planned.dst if planned.dst.is_absolute() else install_root / planned.dst
         dst = dst.resolve()
         path_key = planned.dst.as_posix() if not planned.dst.is_absolute() else str(dst)
@@ -161,3 +148,25 @@ def apply(
     return manifest.model_copy(
         update={"generated_files": manifest.generated_files + generated}
     )
+
+
+def render_planned_file(planned: PlannedFile, pack_roots: dict[str, Path]) -> str:
+    """Render one planned file, or return already composed content.
+
+    Args:
+        planned: Planned file to render.
+        pack_roots: Map of pack ids to absolute pack root paths.
+
+    Returns:
+        Rendered file content for preview/apply.
+    """
+    if planned.rendered_content is not None:
+        return planned.rendered_content
+    root = pack_roots.get(planned.pack_id)
+    if root is None:
+        raise KeyError(
+            f"Pack id '{planned.pack_id}' not in pack_roots; "
+            f"keys: {sorted(pack_roots.keys())}"
+        )
+    template_path = (root / planned.src).resolve()
+    return render(template_path, planned.variables)

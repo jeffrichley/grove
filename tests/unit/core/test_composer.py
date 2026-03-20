@@ -15,14 +15,47 @@ def _packs_with_templates(tmp_path: Path) -> list:
     base_dir.mkdir()
     (base_dir / "pack.toml").write_text(
         'id = "base"\nname = "Base"\nversion = "0.1.0"\n'
-        '[contributes]\ntemplates = ["GROVE.md.j2", "plans/.gitkeep.j2"]\n'
+        "[contributes]\n"
+        'templates = ["GROVE.md.j2", "INDEX.md.j2"]\n'
+    )
+    (base_dir / "GROVE.md.j2").write_text(
+        "<!-- grove:anchor:guidance:start --><!-- grove:anchor:guidance:end -->"
+    )
+    (base_dir / "INDEX.md.j2").write_text(
+        "<!-- grove:anchor:guidance:start --><!-- grove:anchor:guidance:end -->\n"
+        "<!-- grove:anchor:rules:start --><!-- grove:anchor:rules:end -->"
     )
     py_dir = tmp_path / "python"
     py_dir.mkdir()
     (py_dir / "pack.toml").write_text(
         'id = "python"\nname = "Python"\nversion = "0.1.0"\ndepends_on = ["base"]\n'
         '[contributes]\ntemplates = ["rules/python.md.j2"]\n'
+        "[[contributes.injections]]\n"
+        'id = "python-guidance"\n'
+        'anchor = "guidance"\n'
+        'source = "snippets/guidance.md.j2"\n'
+        "order = 10\n"
+        "[[contributes.injections]]\n"
+        'id = "python-rules"\n'
+        'target = "INDEX.md"\n'
+        'anchor = "rules"\n'
+        'content = """### Python Rules\n\n'
+        "Python guidance.\n\n"
+        'When to use: Use when editing Python code."""\n'
+        "order = 10\n"
+        "[[contributes.injections]]\n"
+        'id = "python-testing"\n'
+        'target = "INDEX.md"\n'
+        'anchor = "rules"\n'
+        'content = """### Python Testing\n\n'
+        "Testing guidance.\n\n"
+        'When to use: Use when updating pytest coverage."""\n'
+        "order = 20\n"
     )
+    (py_dir / "rules").mkdir()
+    (py_dir / "rules" / "python.md.j2").write_text("# Python")
+    (py_dir / "snippets").mkdir()
+    (py_dir / "snippets" / "guidance.md.j2").write_text("Injected guidance")
     return discover_packs(builtins_dir=tmp_path)
 
 
@@ -46,7 +79,7 @@ def test_compose_plan_includes_base_and_python_files_when_both_selected(
     assert plan.install_root == install_root
     file_dsts = [f.dst for f in plan.files]
     assert (install_root / "GROVE.md") in file_dsts
-    assert (install_root / "plans" / ".gitkeep") in file_dsts
+    assert (install_root / "INDEX.md") in file_dsts
     assert (install_root / "rules" / "python.md") in file_dsts
     assert len(plan.files) == 3
     base_files = [f for f in plan.files if f.pack_id == "base"]
@@ -141,3 +174,28 @@ def test_compose_base_only_yields_base_templates(tmp_path: Path) -> None:
     # Assert - all files from base pack, count two
     assert all(f.pack_id == "base" for f in plan.files)
     assert len(plan.files) == 2
+
+
+@pytest.mark.unit
+def test_compose_renders_injected_content_into_target_file(tmp_path: Path) -> None:
+    """Compose pre-renders target files that receive injections."""
+    # Arrange - pack fixtures with a GROVE target and a python injection
+    packs = _packs_with_templates(tmp_path)
+    profile = ProjectProfile(project_name="my-app")
+    install_root = tmp_path / ".grove"
+    # Act - compose the selected packs
+    plan = compose(profile, ["base", "python"], install_root, packs)
+    grove_file = next(file for file in plan.files if file.dst.name == "GROVE.md")
+    index_file = next(file for file in plan.files if file.dst.name == "INDEX.md")
+    # Assert - target files contain injected content without managed wrappers
+    assert grove_file.rendered_content is not None
+    assert index_file.rendered_content is not None
+    assert "Injected guidance" in grove_file.rendered_content
+    assert "Injected guidance" in index_file.rendered_content
+    assert "<!-- grove:managed:" not in grove_file.rendered_content
+    assert "### Python Rules" in index_file.rendered_content
+    assert "### Python Testing" in index_file.rendered_content
+    assert "When to use: Use when editing Python code." in index_file.rendered_content
+    assert index_file.rendered_content.index(
+        "### Python Rules"
+    ) < index_file.rendered_content.index("### Python Testing")
