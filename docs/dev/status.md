@@ -5,10 +5,13 @@ last_updated: 2026-03-20
 
 ## Current Focus
 
-- Complete Phase 2F pack-owned Codex skills materialization on the generic integration pipeline. Source: `.ai/PLANS/005-grove-phase2-composition.md`.
+- Plan 005 is complete. Next feature plan is not yet selected.
 
 ## Recently Completed
 
+- **Plan 005 Phase 2G (validation and observability):** `grove sync --dry-run` now reports changed anchors with pack/injection provenance, sync paths are project-root-relative, and provenance coverage landed in unit and integration tests. Source: `.ai/PLANS/005-grove-phase2-composition.md`.
+- **Plan 005 complete:** Grove Phase 2 composition, safe sync, generic pack-owned tool integrations, Codex shim generation, Codex skill materialization, and provenance/dry-run observability are all complete. Source: `.ai/PLANS/005-grove-phase2-composition.md`.
+- **Plan 005 Phase 2F (pack-owned Codex skills materialization):** Codex skill contributions now materialize through the generic integration pipeline into repo-local `.agents/skills`, with built-in `planning-execution` and `memory-writeback` skills and integration coverage for repo-local installs. Source: `.ai/PLANS/005-grove-phase2-composition.md`.
 - **Plan 005 Phase 2E (generic tool hook pipeline + first Codex integration pack):** Generic `tool_hooks` pipeline landed in core, built-in `codex` integration pack added, repo-root `AGENTS.md` shim generation wired into init/add/sync/TUI apply, and Codex shim tests added. Source: `.ai/PLANS/005-grove-phase2-composition.md`.
 - **Plan 005 Phase 2D (pack slimming and Phase 2 pack set):** Base pack slimmed to `GROVE.md` + `INDEX.md`; new minimal built-in `memory`, `commands`, `knowledge`, and `project-context` packs added and verified through `init`/`add`. Source: `.ai/PLANS/005-grove-phase2-composition.md`.
 - **Plan 005 Phase 2C (Grove rendered navigation):** Structured `index_entries`, `INDEX.md` anchor rendering, composer/index renderer integration, and Python pack `rules`/`commands`/`docs` navigation entries. Source: `.ai/PLANS/005-grove-phase2-composition.md`.
@@ -20,6 +23,10 @@ last_updated: 2026-03-20
 
 ## Diary Log
 
+- 2026-03-20: Status sync run for `.ai/PLANS/005-grove-phase2-composition.md` after Phase 2G; Plan 005 marked complete; docs-check and status pass.
+- 2026-03-20: Plan 005 Phase 2G complete: sync dry-run now reports changed anchors plus provenance, project-root-relative output landed, and final gates passed.
+- 2026-03-20: Status sync run for `.ai/PLANS/005-grove-phase2-composition.md` after Phase 2F; current focus advanced to Phase 2G validation and observability; docs-check and status pass.
+- 2026-03-20: Plan 005 Phase 2F complete: Codex skill contributions now materialize into repo-local `.agents/skills` via the generic integration pipeline, Phase 2 validation skills landed, and final gates passed.
 - 2026-03-20: Status sync run for `.ai/PLANS/005-grove-phase2-composition.md` after Phase 2E; current focus advanced to Phase 2F pack-owned Codex skills materialization; docs-check and status pass.
 - 2026-03-20: Plan 005 Phase 2E complete: generic `tool_hooks` pipeline landed, built-in `codex` integration pack added, repo-root `AGENTS.md` shim now updates through init/add/sync/TUI apply, and final gates passed.
 - 2026-03-18: Status sync run for `.ai/PLANS/005-grove-phase2-composition.md` after Phase 2D; current focus advanced to Phase 2E Codex tool hook outputs; docs-check and status pass.

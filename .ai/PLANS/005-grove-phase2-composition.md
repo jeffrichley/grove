@@ -16,7 +16,7 @@ Phase 2 turns Grove from a “render templates into whole files” system into a
    - Grove core provides a generic way to discover, order, render, and apply pack-contributed tool hooks.
    - Tool-specific integrations such as Codex, Cursor, and Claude Code are owned by separate packs rather than hard-coded into core.
    - The first shipped integration is a Codex pack that generates/updates repo-root `AGENTS.md` as a **thin shim** and only manages its shim block (append/update; preserve user content if `AGENTS.md` already exists).
-   - Actual Codex skill bodies are **materialized into Codex’s configured skills directory** as part of Grove install/sync. Grove must not store skill bodies under `.grove/`.
+   - Actual Codex skill bodies are **materialized into repo-local `.agents/skills/`** as part of Grove install/sync. Grove must not store skill bodies under `.grove/`.
 6. **Progressive disclosure model** for Codex context constraints:
    - Tier 1: `AGENTS.md` + `.grove/GROVE.md` (extremely small).
    - Tier 2: `INDEX.md` + `rules/*` + `commands/*`.
@@ -430,40 +430,38 @@ This plan expects new modules to keep complexity contained:
 
 - **Source of truth:** PRD §4 Skills and codex + enforcement rule + automatic materialization
 - **Must:**
-  - Actual Codex skill bodies are installed into the Codex skills directory, not stored under `.grove/`.
+  - Actual Codex skill bodies are installed into repo-local `.agents/skills/`, not stored under `.grove/`.
   - Codex skill materialization is owned by the Codex integration pack and executed through the generic tool hook/integration pipeline.
   - Grove materializes Codex skill bodies automatically during install/sync (no `grove install-skills` command).
-  - In tests, installation targets a temp Codex home via env var (e.g. `CODEX_HOME`).
+  - In tests, installation is verified in the project-local `.agents/skills/` tree.
 - **Must Not:**
   - Include skill bodies in `.grove/`.
   - Depend on global user environment beyond standard destination paths and env overrides for tests.
   - Treat Codex skill handling as a one-off code path disconnected from the pack/integration model.
 - **Acceptance gates:**
   - Integration test verifies:
-    - `CODEX_HOME` set to tmp
-    - skill directories are created under `CODEX_HOME/skills/...`
+    - skill directories are created under `.agents/skills/...`
     - each skill contains `SKILL.md`
   - Required validation commands:
     - `uv run pytest -n auto tests/integration/test_phase2_codex_skills_materialization.py -k skills`
 
 **Tasks:**
 
-- [ ] **CREATE** a pack-owned Codex skill contribution shape:
+- [x] **CREATE** a pack-owned Codex skill contribution shape:
   - parse it from the Codex integration pack manifest
   - map each skill to:
-    - destination folder path in Codex skills directory
+    - destination folder path in repo-local `.agents/skills/`
     - source templates inside pack assets
-- [ ] **IMPLEMENT** skill materialization in `tool_hooks.py`:
+- [x] **IMPLEMENT** skill materialization in `tool_hooks.py`:
   - render skill `SKILL.md` from integration-pack templates
-  - write into Codex skills destination
+  - write into repo-local `.agents/skills/`
   - make idempotent (managed-region semantics as needed for future updates)
-- [ ] **ADD** minimal planning-execution skill and memory skill (as Phase 2 validation):
+- [x] **ADD** minimal planning-execution skill and memory skill (as Phase 2 validation):
   - skills enforce execution steps (subagent delegation heuristics, memory writeback).
 
-- [ ] **ADD** integration test `tests/integration/test_phase2_codex_skills_materialization.py`:
-  - set `CODEX_HOME` to tmp
+- [x] **ADD** integration test `tests/integration/test_phase2_codex_skills_materialization.py`:
   - run `grove init` (or `grove sync`)
-  - assert `CODEX_HOME/skills/**/SKILL.md` exists for the expected Phase 2 skills
+  - assert `.agents/skills/**/SKILL.md` exists for the expected Phase 2 skills
 
 ---
 
@@ -489,10 +487,10 @@ This plan expects new modules to keep complexity contained:
 
 **Tasks:**
 
-- [ ] **UPDATE** sync output reporting:
+- [x] **UPDATE** sync output reporting:
   - include managed block list in dry-run for changed files
-- [ ] **ADD** unit test for provenance extraction from composed inputs.
-- [ ] **UPDATE** docs/comments in core modules for maintainers (marker contract + invariants).
+- [x] **ADD** unit test for provenance extraction from composed inputs.
+- [x] **UPDATE** docs/comments in core modules for maintainers (marker contract + invariants).
 
 ---
 
@@ -528,11 +526,10 @@ A human can directly verify Phase 2 completion by:
    - if repo already had `AGENTS.md`, run `grove init` and verify:
      - content outside the Grove-managed shim block remains
      - shim block exists and points to `.grove/GROVE.md` + `.grove/INDEX.md`.
-4. **Codex skills installation** (in tests with `CODEX_HOME`):
-   - set `CODEX_HOME` to a temp directory
+4. **Codex skills installation**:
    - run `grove init` (or sync)
    - verify:
-     - `"$CODEX_HOME/skills/**/SKILL.md"` files exist for Phase 2 validation skills.
+     - `.agents/skills/**/SKILL.md` files exist for Phase 2 validation skills.
 
 ## Execution Report
 
@@ -634,3 +631,36 @@ Append entries here after each completed phase with:
   - Init with `--pack base --pack codex` preserves pre-existing user content in repo-root `AGENTS.md` and appends the Grove-managed Codex shim block pointing to `.grove/GROVE.md` and `.grove/INDEX.md`.
   - `grove sync` refreshes only the Codex managed shim block when it becomes stale.
   - The generic tool hook pipeline is pack-owned: adding the `codex` pack enables Codex integration without introducing a Codex-only orchestration path in core.
+
+### Phase 2F - 2026-03-20
+
+- Status: Complete
+- Scope notes:
+  - Extended the generic integration pipeline so the Codex integration pack can contribute `codex_skills` alongside tool hooks without introducing a one-off install command.
+  - Added `CodexSkillSpec` to the core models and updated `src/grove/core/tool_hooks.py` to collect, render, and materialize Codex skills into repo-local `.agents/skills/`.
+  - Added two Phase 2 validation skills owned by the built-in `codex` pack: `planning-execution` and `memory-writeback`.
+  - Added unit coverage for Codex skill contribution collection and integration coverage for materialization into `.agents/skills/...`.
+- Commands run:
+  - `uv run pytest -n auto tests/integration/test_phase2_codex_skills_materialization.py -k skills` -> PASS
+  - `uv run pytest -n auto tests/unit/core/test_tool_hooks.py` -> PASS
+  - `just quality` -> PASS
+  - `just test` -> PASS
+- Acceptance evidence:
+  - `grove init --pack base --pack codex` now materializes `planning-execution/SKILL.md` and `memory-writeback/SKILL.md` under `.agents/skills/`.
+  - The installed skill bodies come from the Codex integration pack assets rather than `.grove/`, preserving the pack-owned integration architecture.
+
+### Phase 2G - 2026-03-20
+
+- Status: Complete
+- Scope notes:
+  - Added structured provenance metadata for composed anchor bodies so planned files now retain the ordered pack/injection ownership for each anchor.
+  - Updated sync to return structured file-change records and to report changed anchors during `grove sync --dry-run`, including the pack/injection provenance that owns each rebuilt anchor body.
+  - Updated dry-run path reporting to use project-root-relative paths for clearer operator output.
+  - Added unit coverage for provenance extraction during composition and integration coverage for dry-run provenance reporting without writing files.
+- Commands run:
+  - `uv run pytest -n auto tests/unit/core/test_provenance.py tests/integration/test_phase2_provenance_sync.py -k provenance` -> PASS
+  - `just quality` -> PASS
+  - `just test` -> PASS
+- Acceptance evidence:
+  - `grove sync --dry-run` now reports file paths plus changed anchors such as `guidance`, followed by owning contributions like `python:python-grove-guidance`.
+  - Dry-run leaves the modified file untouched while still reporting the exact anchor rewrite that a real sync would perform.

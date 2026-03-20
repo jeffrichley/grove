@@ -108,7 +108,7 @@ Phase 2 transforms Grove from “packs render whole files” into a **composable
 #### Skills and tool integrations
 
 - ✅ Dual-layer: Grove = source of truth (rules, context, commands); Codex skills = procedural execution (workflows, delegation).
-- ✅ Codex skills are installed into the Codex skills directory (default `~/.codex/skills` / `$CODEX_HOME/skills`); Grove must not contain the actual skill bodies under `.grove/` (only pointers/metadata).
+- ✅ Codex skills are installed into the repository-local Codex skills directory at `.agents/skills/`; Grove must not contain the actual skill bodies under `.grove/` (only pointers/metadata).
 - ✅ AGENTS.md is a minimal entrypoint that points to `.grove/GROVE.md` and `.grove/INDEX.md`; pack-generated guidance (rules/docs/commands) explains “which skill to use”, while Codex skills define “what to do”.
 - ✅ Execution-critical behaviors that must reliably happen (e.g. planning/execution workflow, subagent delegation, memory writeback) are implemented as Codex skills, not only as prose in Grove.
 - ✅ Hard rule: anything that must reliably happen during execution is encoded as a Codex skill (not only as prose in GROVE).
@@ -125,7 +125,7 @@ Phase 2 transforms Grove from “packs render whole files” into a **composable
 
 - ❌ `discovery.toml` as a runtime artifact agents must query; discovery is rendered into markdown only.
 - ❌ Full implementation of every external tool integration in Phase 2. The pipeline is generic, but only Codex is required as the first shipped integration in this phase.
-- ❌ Global Codex config (~/.codex/...) as primary mechanism.
+- ❌ Global Codex config (`~/.codex/...`) or user-home skill installs as the primary mechanism.
 - ❌ Custom slash commands for Codex (unless verified and specified later).
 - ❌ Arbitrary file patching or regex-based edits; only anchored injection into declared targets.
 - ❌ Full implementation of every optional pack (e.g. research, multi-agent coordination) in Phase 2.
@@ -234,8 +234,8 @@ Optional: `.grove/.gitignore` for generated/managed artifacts if needed.
 
 ### Skills integration
 
-- **Source of truth:** Skill templates/sources live in pack-provided content; installation materializes actual Codex skills into the Codex skill directory (not into `.grove/`).
-- **Install:** Automatic as part of Grove install/sync; Grove materializes the Codex skill bodies into Codex’s configured skills directory.
+- **Source of truth:** Skill templates/sources live in pack-provided content; installation materializes actual Codex skills into the repository-local `.agents/skills/` directory (not into `.grove/`).
+- **Install:** Automatic as part of Grove install/sync; Grove materializes the Codex skill bodies into the repo-local Codex skills directory that Codex discovers from the repository tree.
 - **Bridge:** AGENTS.md points to `.grove/GROVE.md` (and optionally INDEX/rules/commands); pack-generated docs provide guidance on skill selection/use, and skills reference Grove context when executing.
 - **Ownership boundary:** Hook shims and skill materialization for a given tool belong to that tool’s integration pack, even though Grove core executes the generic pipeline.
 
@@ -254,7 +254,7 @@ Optional: `.grove/.gitignore` for generated/managed artifacts if needed.
 - **Templates:** Jinja2; single-file render; compose step merges fragments.
 - **Models:** Pydantic for injection specs, command entries, tool hook specs (extend existing models).
 - **Output:** Markdown for GROVE.md, INDEX.md, rules, docs, commands; tool-specific formats for hooks (e.g. AGENTS.md markdown).
-- **Skills:** Codex skill format (SKILL.md, references/, scripts/ as needed); install path per Codex conventions.
+- **Skills:** Codex skill format (SKILL.md, references/, scripts/ as needed); install path follows Codex repo-local conventions under `.agents/skills/`.
 
 ---
 
@@ -263,7 +263,7 @@ Optional: `.grove/.gitignore` for generated/managed artifacts if needed.
 - **Trust:** Treat repo and user-edited regions as trusted for sync; do not overwrite user markers or content outside anchor bodies.
 - **Tool hooks:** Generated files are deterministic from pack content and profile; no arbitrary code execution in hook content.
 - **Configuration:** Manifest and `.grove/commands.toml`, `.grove/planning.toml` are project-owned; no secrets in manifest.
-- **Scope:** Phase 2 always generates repo-owned GROVE outputs (e.g. `.grove/` and tool hook files like `AGENTS.md`). Optional Codex skill installation may write to Codex’s configured skills directory, but Phase 2 does not require editing any external Codex config beyond the standard destination paths.
+- **Scope:** Phase 2 always generates repo-owned GROVE outputs (e.g. `.grove/`, `.agents/skills/`, and tool hook files like `AGENTS.md`). Phase 2 does not require editing external Codex config or user-home skill locations.
 
 ---
 
@@ -416,7 +416,7 @@ Exact function signatures and Pydantic models to be defined in implementation pl
 - **Base pack:** minimal; GROVE acronym + principle + operating model in GROVE.md; **Memory** and **Self-upgrade** as separate packs; self-upgrade proposal-driven.
 - **Commands:** structured TOML (e.g. `.grove/commands.toml`) rendered into Grove md.
 - **Planning-execution:** separate pack; teach when to use subagents and reconciliation.
-- **Skills:** Grove = context/source of truth; Codex skills = procedural; actual skill bodies are installed into Codex’s skill directory (not stored under `.grove/`); AGENTS.md bridges.
+- **Skills:** Grove = context/source of truth; Codex skills = procedural; actual skill bodies are installed into repo-local `.agents/skills/` (not stored under `.grove/`); AGENTS.md bridges.
 
 ### Repository structure (this repo)
 

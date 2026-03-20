@@ -59,6 +59,15 @@ class InjectionSpec(BaseModel):
     order: int = Field(default=0, description="Deterministic ordering key.")
 
 
+class InjectionProvenance(BaseModel):
+    """Structured provenance for one anchored contribution."""
+
+    pack_id: str = Field(..., description="Pack that owns the contribution.")
+    injection_id: str = Field(..., description="Injection identifier within the pack.")
+    anchor: str = Field(..., description="Anchor name the injection targets.")
+    order: int = Field(default=0, description="Deterministic ordering key.")
+
+
 class ToolHookSpec(BaseModel):
     """One pack-owned tool integration output."""
 
@@ -80,6 +89,26 @@ class ToolHookSpec(BaseModel):
     content: str | None = Field(
         default=None,
         description="Optional inline template content for the hook body.",
+    )
+    order: int = Field(default=0, description="Deterministic ordering key.")
+
+
+class CodexSkillSpec(BaseModel):
+    """One pack-owned Codex skill materialization output."""
+
+    pack_id: str = Field(..., description="Pack that owns this Codex skill.")
+    id: str = Field(..., description="Unique skill id across selected packs.")
+    path: Path = Field(
+        ...,
+        description="Destination folder path relative to repo-local `.agents/skills`.",
+    )
+    source: Path | None = Field(
+        default=None,
+        description="Optional source template path relative to the contributing pack.",
+    )
+    content: str | None = Field(
+        default=None,
+        description="Optional inline template content for the skill body.",
     )
     order: int = Field(default=0, description="Deterministic ordering key.")
 
@@ -139,6 +168,10 @@ class PlannedFile(BaseModel):
         default=None,
         description="Pre-rendered output for composition-aware files.",
     )
+    anchor_provenance: dict[str, list[InjectionProvenance]] = Field(
+        default_factory=dict,
+        description="Per-anchor provenance for composed injection content.",
+    )
 
 
 class InstallPlan(BaseModel):
@@ -149,6 +182,26 @@ class InstallPlan(BaseModel):
     )
     files: list[PlannedFile] = Field(
         default_factory=list, description="Files to create or update."
+    )
+
+
+class AnchorSyncChange(BaseModel):
+    """One changed anchor reported by sync dry-run."""
+
+    anchor: str = Field(..., description="Anchor whose body would be rewritten.")
+    provenance: list[InjectionProvenance] = Field(
+        default_factory=list,
+        description="Ordered provenance entries that own the desired anchor body.",
+    )
+
+
+class SyncFileChange(BaseModel):
+    """One file that sync would update or did update."""
+
+    path: str = Field(..., description="Path relative to the project root.")
+    anchors: list[AnchorSyncChange] = Field(
+        default_factory=list,
+        description="Changed anchors for composed files; empty for whole-file writes.",
     )
 
 

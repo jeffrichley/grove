@@ -16,3 +16,15 @@ hook_type = "managed_block"
 target = "AGENTS.md"
 source = "hooks/agents.md.j2"
 order = 10
+
+[[contributes.codex_skills]]
+id = "codex-planning-execution"
+path = "planning-execution"
+source = "skills/planning-execution/SKILL.md.j2"
+order = 10
+
+[[contributes.codex_skills]]
+id = "codex-memory-writeback"
+path = "memory-writeback"
+source = "skills/memory-writeback/SKILL.md.j2"
+order = 20

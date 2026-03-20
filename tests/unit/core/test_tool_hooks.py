@@ -13,7 +13,11 @@ from grove.core.models import (
     ProjectProfile,
     ProjectSection,
 )
-from grove.core.tool_hooks import apply_tool_hooks, collect_tool_hooks
+from grove.core.tool_hooks import (
+    apply_tool_hooks,
+    collect_codex_skills,
+    collect_tool_hooks,
+)
 
 
 def _make_manifest(tmp_path: Path, pack_id: str = "demo-tool") -> ManifestState:
@@ -122,3 +126,76 @@ def test_apply_tool_hooks_updates_only_managed_block(tmp_path: Path) -> None:
     assert "User-owned header" in content
     assert "Hello fixture from Grove" in content
     assert "stale block" not in content
+
+
+@pytest.mark.unit
+def test_collect_codex_skills_orders_and_preserves_paths(tmp_path: Path) -> None:
+    """Codex skills are collected from selected packs in deterministic order."""
+    # Arrange - one integration pack with two Codex skill contributions
+    pack_root = tmp_path / "pack"
+    pack_root.mkdir()
+    pack = PackManifest(
+        id="codex",
+        name="Codex",
+        version="0.1.0",
+        root_dir=pack_root,
+        contributes={
+            "codex_skills": [
+                {
+                    "id": "memory",
+                    "path": "memory-writeback",
+                    "content": "memory",
+                    "order": 20,
+                },
+                {
+                    "id": "planning",
+                    "path": "planning-execution",
+                    "content": "planning",
+                    "order": 10,
+                },
+            ]
+        },
+    )
+    # Act - collect skills
+    skills = collect_codex_skills([pack], {"codex"})
+    # Assert - deterministic order and preserved destination paths
+    assert [skill.id for skill in skills] == ["planning", "memory"]
+    assert skills[0].path == Path("planning-execution")
+
+
+@pytest.mark.unit
+def test_apply_tool_hooks_materializes_codex_skills_under_repo_local_agents_dir(
+    tmp_path: Path,
+) -> None:
+    """Codex skills materialize under .agents/skills within the project root."""
+    # Arrange - one Codex integration pack with a single inline skill body
+    pack_root = tmp_path / "pack"
+    pack_root.mkdir()
+    pack = PackManifest(
+        id="codex",
+        name="Codex",
+        version="0.1.0",
+        root_dir=pack_root,
+        contributes={
+            "codex_skills": [
+                {
+                    "id": "planning",
+                    "path": "planning-execution",
+                    "content": "# Planning Execution",
+                    "order": 10,
+                }
+            ]
+        },
+    )
+    # Act - apply tool hooks for the selected Codex pack
+    changed = apply_tool_hooks(
+        tmp_path,
+        _make_manifest(tmp_path, pack_id="codex"),
+        [pack],
+        _make_profile(tmp_path),
+    )
+    # Assert - skill body is written under the repo-local .agents tree
+    skill_path = tmp_path / ".agents" / "skills" / "planning-execution" / "SKILL.md"
+    assert changed == [".agents/skills/planning-execution/SKILL.md"]
+    assert skill_path.exists()
+    assert "Planning Execution" in skill_path.read_text(encoding="utf-8")
