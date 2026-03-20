@@ -3,7 +3,8 @@
 Discovery order in a pack directory: pack.toml, then pack.yaml, then pack.yml
 (prefer TOML when present). Builtins use pack.toml. Schema matches
 PackManifest in grove.core.models; contributes may include templates,
-setup_questions, and rules with path triggers (e.g. contributes.rules[].paths).
+setup_questions, rules with path triggers (e.g. contributes.rules[].paths), and
+future doctor-related contribution shapes such as contributes.doctor_checks.
 Template paths in contributes are relative to the pack root.
 """
 

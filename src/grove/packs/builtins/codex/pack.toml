@@ -28,3 +28,21 @@ id = "codex-memory-writeback"
 path = "memory-writeback"
 source = "skills/memory-writeback/SKILL.md.j2"
 order = 20
+
+[[contributes.doctor_checks]]
+id = "codex-planning-execution-front-matter"
+check_type = "skill_front_matter"
+description = "Codex planning-execution skill must include required front matter."
+tool = "codex"
+skill_path = "planning-execution"
+required_front_matter = ["name", "description"]
+order = 10
+
+[[contributes.doctor_checks]]
+id = "codex-memory-writeback-front-matter"
+check_type = "skill_front_matter"
+description = "Codex memory-writeback skill must include required front matter."
+tool = "codex"
+skill_path = "memory-writeback"
+required_front_matter = ["name", "description"]
+order = 20

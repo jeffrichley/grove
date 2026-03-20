@@ -5,10 +5,12 @@ from pathlib import Path
 
 from grove.core.models import (
     CodexSkillSpec,
+    CodexSkillTargetState,
     ManifestState,
     PackManifest,
     ProjectProfile,
     ToolHookSpec,
+    ToolHookTargetState,
 )
 from grove.core.renderer import render, render_string
 
@@ -120,6 +122,85 @@ def collect_codex_skills(
             seen_ids.add(skill.id)
             skills.append(skill)
     return sorted(skills, key=lambda item: (item.order, item.id))
+
+
+def plan_tool_hook_targets(
+    root: Path,
+    packs: list[PackManifest],
+    profile: ProjectProfile,
+    selected_pack_ids: set[str],
+) -> list[ToolHookTargetState]:
+    """Return desired per-target tool-hook state for selected packs.
+
+    Args:
+        root: Project root used for project-relative target paths.
+        packs: Available pack manifests in dependency order.
+        profile: Project analysis used as template variables.
+        selected_pack_ids: Pack ids selected for the desired state.
+
+    Returns:
+        Per-target desired hook state ordered by target path.
+    """
+    variables = _variables_from_profile(profile)
+    packs_by_id = {pack.id: pack for pack in packs}
+    grouped: dict[str, ToolHookTargetState] = {}
+    for hook in collect_tool_hooks(packs, selected_pack_ids):
+        path = _relative_to_root(root, _resolve_target(root, hook.target))
+        rendered = _render_tool_hook(hook, variables, packs_by_id)
+        current = grouped.get(path)
+        if current is None:
+            grouped[path] = ToolHookTargetState(
+                path=path,
+                hook_type=hook.hook_type,
+                tools=[hook.tool],
+                hook_ids=[hook.id],
+                pack_ids=[hook.pack_id],
+                rendered_blocks=[rendered],
+            )
+            continue
+        grouped[path] = current.model_copy(
+            update={
+                "tools": [*current.tools, hook.tool],
+                "hook_ids": [*current.hook_ids, hook.id],
+                "pack_ids": [*current.pack_ids, hook.pack_id],
+                "rendered_blocks": [*current.rendered_blocks, rendered],
+            }
+        )
+    return [grouped[path] for path in sorted(grouped)]
+
+
+def plan_codex_skill_targets(
+    root: Path,
+    packs: list[PackManifest],
+    profile: ProjectProfile,
+    selected_pack_ids: set[str],
+) -> list[CodexSkillTargetState]:
+    """Return desired repo-local Codex skill state for selected packs.
+
+    Args:
+        root: Project root used for project-relative reporting.
+        packs: Available pack manifests in dependency order.
+        profile: Project analysis used as template variables.
+        selected_pack_ids: Pack ids selected for the desired state.
+
+    Returns:
+        Repo-local skill target state ordered by target path.
+    """
+    variables = _variables_from_profile(profile)
+    packs_by_id = {pack.id: pack for pack in packs}
+    states = [
+        CodexSkillTargetState(
+            path=_relative_to_root(
+                root,
+                _codex_skills_root(root) / skill.path / "SKILL.md",
+            ),
+            skill_id=skill.id,
+            pack_id=skill.pack_id,
+            rendered_content=f"{_render_codex_skill(skill, variables, packs_by_id)}\n",
+        )
+        for skill in collect_codex_skills(packs, selected_pack_ids)
+    ]
+    return sorted(states, key=lambda item: item.path)
 
 
 def _tool_hooks_from_pack(pack: PackManifest) -> list[ToolHookSpec]:

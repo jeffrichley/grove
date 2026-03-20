@@ -12,6 +12,7 @@ last_updated: 2026-03-20
 | 3 | Grove CLI Phase 3: grove add, sync, configure (manage mode) | Done | `.ai/PLANS/003-grove-add-sync-manage-mode.md` |
 | 4 | Grove Phase 2 composition/safe sync/tool hooks | Done | `.ai/PLANS/005-grove-phase2-composition.md` |
 | 5 | Grove CLI Phase 4: polish and packaging | Done | `.ai/PLANS/004-grove-polish-packaging.md` |
+| 6 | Grove lifecycle: `grove remove` and `grove doctor` | Done | `.ai/PLANS/006-grove-remove-and-doctor.md` |
 
 ## Internal / engineering
 
@@ -20,3 +21,4 @@ last_updated: 2026-03-20
 - Plan 003 delivered: `grove add`, `grove sync`, `grove configure` (init TUI when no manifest, manage TUI when manifest exists), `grove manage` alias; manage dashboard (installed packs, add pack, re-run analysis, full re-setup); integration tests for add/sync/configure. See `.ai/PLANS/003-grove-add-sync-manage-mode.md`.
 - Plan 004 delivered: CLI/help and error-message polish, MkDocs docs site, pack author guide, documented install flow, and roadmap/status closure. See `.ai/PLANS/004-grove-polish-packaging.md`.
 - Plan 005 delivered: composable Grove documents, anchor-owned safe sync, rendered navigation, slim built-in pack set, generic pack-owned tool integrations, Codex skill materialization, and sync provenance/dry-run observability. See `.ai/PLANS/005-grove-phase2-composition.md`.
+- Plan 006 delivered: lifecycle-safe `grove remove`, read-only `grove doctor`, explicit ownership/provenance surfaces, pack-owned doctor checks, Codex skill front-matter validation, and documentation/status closure. See `.ai/PLANS/006-grove-remove-and-doctor.md`.

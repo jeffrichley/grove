@@ -113,6 +113,173 @@ class CodexSkillSpec(BaseModel):
     order: int = Field(default=0, description="Deterministic ordering key.")
 
 
+class ToolHookOutputRecord(BaseModel):
+    """One materialized tool-native output owned by a selected pack."""
+
+    pack_id: str = Field(..., description="Pack that owns this tool-native output.")
+    hook_id: str = Field(..., description="Hook identifier within the owning pack.")
+    tool: str = Field(..., description="External tool id (e.g. 'codex').")
+    hook_type: str = Field(..., description="Write/update strategy for the output.")
+    path: str = Field(..., description="Target path relative to the project root.")
+
+
+class CodexSkillOutputRecord(BaseModel):
+    """One materialized repo-local Codex skill owned by a selected pack."""
+
+    pack_id: str = Field(..., description="Pack that owns this materialized skill.")
+    skill_id: str = Field(..., description="Skill identifier within the owning pack.")
+    path: str = Field(
+        ...,
+        description="Target path relative to the project root for `SKILL.md`.",
+    )
+
+
+class DoctorCheckSpec(BaseModel):
+    """One pack-owned doctor check contribution."""
+
+    pack_id: str = Field(..., description="Pack that owns this doctor check.")
+    id: str = Field(..., description="Unique doctor check id across selected packs.")
+    check_type: str = Field(
+        ...,
+        description="Generic doctor check kind executed by the doctor engine.",
+    )
+    description: str = Field(
+        default="",
+        description="Short human-readable summary of what this check verifies.",
+    )
+    target: Path | None = Field(
+        default=None,
+        description="Optional project-relative target path inspected by the check.",
+    )
+    tool: str | None = Field(
+        default=None,
+        description="Optional external tool id associated with the check.",
+    )
+    skill_path: Path | None = Field(
+        default=None,
+        description="Optional repo-local skill directory associated with the check.",
+    )
+    required_front_matter: list[str] = Field(
+        default_factory=list,
+        description="Required front-matter keys for semantic output validation.",
+    )
+    order: int = Field(default=0, description="Deterministic ordering key.")
+
+
+class DoctorIssue(BaseModel):
+    """One issue detected during `grove doctor`."""
+
+    code: str = Field(..., description="Stable issue code.")
+    severity: str = Field(
+        ...,
+        description="Issue severity (e.g. info, warning, error).",
+    )
+    message: str = Field(..., description="Human-readable issue summary.")
+    path: str | None = Field(
+        default=None,
+        description="Optional project-relative path associated with the issue.",
+    )
+    pack_id: str | None = Field(
+        default=None,
+        description="Optional pack id associated with the issue.",
+    )
+    check_id: str | None = Field(
+        default=None,
+        description="Optional doctor check id that produced the issue.",
+    )
+
+
+class DoctorReport(BaseModel):
+    """Structured report returned by the future doctor engine."""
+
+    healthy: bool = Field(
+        default=True,
+        description="True when no warning/error issues were detected.",
+    )
+    summary: str = Field(
+        default="",
+        description="Short human-readable summary of the installation state.",
+    )
+    issues: list[DoctorIssue] = Field(
+        default_factory=list,
+        description="Ordered issues detected during the doctor run.",
+    )
+
+
+class ToolHookTargetState(BaseModel):
+    """Desired tool-hook target state for a selected pack set."""
+
+    path: str = Field(..., description="Project-root-relative tool target path.")
+    hook_type: str = Field(..., description="Shared hook type for this target path.")
+    tools: list[str] = Field(
+        default_factory=list,
+        description="Ordered tool ids aligned with the contributing hook ids.",
+    )
+    hook_ids: list[str] = Field(
+        default_factory=list,
+        description="Ordered hook ids that contribute to this target path.",
+    )
+    pack_ids: list[str] = Field(
+        default_factory=list,
+        description="Ordered pack ids that contribute hooks to this path.",
+    )
+    rendered_blocks: list[str] = Field(
+        default_factory=list,
+        description="Rendered managed blocks in deterministic hook order.",
+    )
+
+
+class CodexSkillTargetState(BaseModel):
+    """Desired repo-local Codex skill state for a selected pack set."""
+
+    path: str = Field(..., description="Project-root-relative `SKILL.md` path.")
+    skill_id: str = Field(..., description="Owning skill contribution id.")
+    pack_id: str = Field(..., description="Pack that owns the skill contribution.")
+    rendered_content: str = Field(
+        ...,
+        description="Rendered skill file body including the trailing newline.",
+    )
+
+
+class RemovePathPlan(BaseModel):
+    """Planned action for one path during `grove remove`."""
+
+    path: str = Field(..., description="Project-root-relative path to classify.")
+    action: str = Field(
+        ...,
+        description="Planned action: delete, rewrite, or preserve.",
+    )
+    surface: str = Field(
+        ...,
+        description=(
+            "Ownership surface: managed_file, tool_hook, or pack_local_skill."
+        ),
+    )
+    reason: str = Field(..., description="Human-readable reason for the action.")
+    pack_ids: list[str] = Field(
+        default_factory=list,
+        description="Packs that currently contribute to this path.",
+    )
+    anchors: list[str] = Field(
+        default_factory=list,
+        description="Affected anchors for managed file rewrites, when known.",
+    )
+
+
+class RemovePlan(BaseModel):
+    """Non-mutating remove plan computed before filesystem changes."""
+
+    target_pack_id: str = Field(..., description="Pack requested for removal.")
+    remaining_pack_ids: list[str] = Field(
+        default_factory=list,
+        description="Installed pack ids that remain after removal.",
+    )
+    changes: list[RemovePathPlan] = Field(
+        default_factory=list,
+        description="Ordered path actions that remove would apply or preserve.",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Project profile (from analyzer)
 # ---------------------------------------------------------------------------

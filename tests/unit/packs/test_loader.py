@@ -27,6 +27,14 @@ setup_questions = []
 
 [[contributes.rules]]
 paths = ["**/*.py"]
+
+[[contributes.doctor_checks]]
+id = "codex-skill-front-matter"
+check_type = "skill_front_matter"
+description = "Codex skills must include front matter."
+tool = "codex"
+skill_path = "planning-execution"
+required_front_matter = ["name", "description"]
 """
     )
     # Act - load_pack_manifest
@@ -42,6 +50,10 @@ paths = ["**/*.py"]
     rules = manifest.contributes.get("rules")
     assert isinstance(rules, list) and len(rules) == 1
     assert rules[0].get("paths") == ["**/*.py"]
+    doctor_checks = manifest.contributes.get("doctor_checks")
+    assert isinstance(doctor_checks, list) and len(doctor_checks) == 1
+    assert doctor_checks[0].get("check_type") == "skill_front_matter"
+    assert doctor_checks[0].get("required_front_matter") == ["name", "description"]
 
 
 @pytest.mark.unit

@@ -6,17 +6,21 @@ import pytest
 
 from grove.core.manifest import MANIFEST_SCHEMA_VERSION
 from grove.core.models import (
+    CodexSkillTargetState,
     GroveSection,
     InstalledPackRecord,
     ManifestState,
     PackManifest,
     ProjectProfile,
     ProjectSection,
+    ToolHookTargetState,
 )
 from grove.core.tool_hooks import (
     apply_tool_hooks,
     collect_codex_skills,
     collect_tool_hooks,
+    plan_codex_skill_targets,
+    plan_tool_hook_targets,
 )
 
 
@@ -199,3 +203,97 @@ def test_apply_tool_hooks_materializes_codex_skills_under_repo_local_agents_dir(
     assert changed == [".agents/skills/planning-execution/SKILL.md"]
     assert skill_path.exists()
     assert "Planning Execution" in skill_path.read_text(encoding="utf-8")
+
+
+@pytest.mark.unit
+def test_plan_tool_hook_targets_groups_rendered_blocks_by_target_path(
+    tmp_path: Path,
+) -> None:
+    """Tool-hook planning returns deterministic per-target state for remove."""
+    # Arrange - two managed-block hooks render into the same target file
+    pack_root = tmp_path / "pack"
+    pack_root.mkdir()
+    pack = PackManifest(
+        id="codex",
+        name="Codex",
+        version="0.1.0",
+        root_dir=pack_root,
+        contributes={
+            "tool_hooks": [
+                {
+                    "id": "shim-a",
+                    "tool": "codex",
+                    "hook_type": "managed_block",
+                    "target": "AGENTS.md",
+                    "content": "A {{ project_name }}",
+                    "order": 10,
+                },
+                {
+                    "id": "shim-b",
+                    "tool": "codex",
+                    "hook_type": "managed_block",
+                    "target": "AGENTS.md",
+                    "content": "B {{ project_name }}",
+                    "order": 20,
+                },
+            ]
+        },
+    )
+    # Act - plan desired tool-hook targets for the selected pack
+    states = plan_tool_hook_targets(
+        tmp_path,
+        [pack],
+        _make_profile(tmp_path),
+        {"codex"},
+    )
+    # Assert - one grouped target keeps deterministic hook metadata and blocks
+    assert states == [
+        ToolHookTargetState(
+            path="AGENTS.md",
+            hook_type="managed_block",
+            tools=["codex", "codex"],
+            hook_ids=["shim-a", "shim-b"],
+            pack_ids=["codex", "codex"],
+            rendered_blocks=["A fixture", "B fixture"],
+        )
+    ]
+
+
+@pytest.mark.unit
+def test_plan_codex_skill_targets_render_repo_local_skill_state(tmp_path: Path) -> None:
+    """Codex skill planning returns rendered repo-local skill targets."""
+    # Arrange - one Codex pack contributes one repo-local skill
+    pack_root = tmp_path / "pack"
+    pack_root.mkdir()
+    pack = PackManifest(
+        id="codex",
+        name="Codex",
+        version="0.1.0",
+        root_dir=pack_root,
+        contributes={
+            "codex_skills": [
+                {
+                    "id": "planning",
+                    "path": "planning-execution",
+                    "content": "# {{ project_name }} Planning",
+                    "order": 10,
+                }
+            ]
+        },
+    )
+    # Act - plan rendered repo-local skill state
+    states = plan_codex_skill_targets(
+        tmp_path,
+        [pack],
+        _make_profile(tmp_path),
+        {"codex"},
+    )
+    # Assert - target state is project-root-relative with rendered content
+    assert states == [
+        CodexSkillTargetState(
+            path=".agents/skills/planning-execution/SKILL.md",
+            skill_id="planning",
+            pack_id="codex",
+            rendered_content="# fixture Planning\n",
+        )
+    ]

@@ -11,6 +11,7 @@ import typer
 from grove.analyzer import analyze
 from grove.core import apply, compose, preview, save_manifest
 from grove.core.add import add_pack
+from grove.core.doctor import run_doctor
 from grove.core.file_ops import ApplyOptions
 from grove.core.manifest import MANIFEST_SCHEMA_VERSION
 from grove.core.models import (
@@ -22,6 +23,7 @@ from grove.core.models import (
     ProjectSection,
 )
 from grove.core.registry import discover_packs, get_builtin_pack_roots_and_packs
+from grove.core.remove import run_remove
 from grove.core.sync import run_sync
 from grove.core.tool_hooks import apply_tool_hooks
 from grove.exceptions import (
@@ -402,6 +404,65 @@ def add(
 
 
 @app.command()
+def remove(
+    pack: Annotated[
+        str,
+        typer.Argument(help="Pack id to remove (for example 'python')."),
+    ],
+    root: Annotated[
+        Path | None,
+        typer.Option("--root", "-r", help="Project root (default: current directory)."),
+    ] = None,
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run",
+            help="Do not write files or update the manifest; only report changes.",
+        ),
+    ] = False,
+) -> None:
+    """Remove one pack from an existing Grove installation.
+
+    This command requires `.grove/manifest.toml`, recomputes the remaining
+    desired state, and removes only the outputs owned by the selected pack.
+    Use `--dry-run` to inspect delete/rewrite/preserve actions without
+    changing files or the manifest.
+
+    Args:
+        pack: Pack id to remove.
+        root: Project root directory (default: current directory).
+        dry_run: If True, report planned changes without mutating disk.
+    """
+    try:
+        root = _resolve_root(root)
+        manifest_path = root / ".grove" / "manifest.toml"
+        if not manifest_path.exists():
+            raise GroveManifestError("No Grove manifest; run 'grove init' first.")
+        remove_plan = run_remove(root, pack, dry_run=dry_run)
+    except GroveError as e:
+        _exit_with_error(str(e))
+
+    if dry_run:
+        typer.echo("Dry run: planned remove changes:")
+    else:
+        typer.echo(f"Removed pack {pack}.")
+    for heading, action in (
+        ("Deleted:", "delete"),
+        ("Rewritten:", "rewrite"),
+        ("Preserved:", "preserve"),
+    ):
+        paths = [change for change in remove_plan.changes if change.action == action]
+        if not paths:
+            continue
+        typer.echo(heading)
+        for change in paths:
+            typer.echo(f"  {change.path} [{change.surface}]")
+            if change.anchors:
+                typer.echo(f"    anchors: {', '.join(change.anchors)}")
+            typer.echo(f"    reason: {change.reason}")
+
+
+@app.command()
 def manage(
     root: Annotated[
         Path | None,
@@ -426,6 +487,39 @@ def manage(
             "'grove add'/'grove sync' for non-interactive maintenance."
         )
     _run_configure(root)
+
+
+@app.command()
+def doctor(
+    root: Annotated[
+        Path | None,
+        typer.Option("--root", "-r", help="Project root (default: current directory)."),
+    ] = None,
+) -> None:
+    """Run read-only Grove installation diagnostics.
+
+    This command checks manifest health, dependency coherence, managed-file
+    drift, anchor safety, tool-hook targets, and pack-local skills without
+    mutating files.
+
+    Args:
+        root: Project root directory (default: current directory).
+    """
+    try:
+        root = _resolve_root(root)
+        report = run_doctor(root)
+    except GroveError as e:
+        _exit_with_error(str(e))
+
+    typer.echo(report.summary)
+    if report.issues:
+        typer.echo("Findings:")
+        for issue in report.issues:
+            location = f" [{issue.path}]" if issue.path else ""
+            typer.echo(f"  {issue.severity.upper()} {issue.code}{location}")
+            typer.echo(f"    {issue.message}")
+    if not report.healthy:
+        raise typer.Exit(1)
 
 
 def main() -> None:

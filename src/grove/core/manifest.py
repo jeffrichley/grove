@@ -15,6 +15,9 @@ from grove.core.models import (
 )
 
 # Schema version for manifest.toml; bump when breaking compatibility.
+# Phase 1 of Plan 006 keeps schema_version at 1 because remove/doctor ownership
+# remains derivable from pack manifests, composition provenance, and current
+# generated file records rather than requiring new persisted manifest sections.
 MANIFEST_SCHEMA_VERSION = 1
 
 

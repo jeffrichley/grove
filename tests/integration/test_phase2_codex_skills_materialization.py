@@ -33,6 +33,8 @@ def test_codex_skills_materialize_under_repo_local_agents_dir(tmp_path: Path) ->
     memory_skill = tmp_path / ".agents" / "skills" / "memory-writeback" / "SKILL.md"
     assert planning_skill.exists()
     assert memory_skill.exists()
+    assert planning_skill.read_text(encoding="utf-8").startswith("---\nname:")
+    assert memory_skill.read_text(encoding="utf-8").startswith("---\nname:")
     assert "Planning Execution" in planning_skill.read_text(encoding="utf-8")
     assert "Memory Writeback" in memory_skill.read_text(encoding="utf-8")
 
@@ -60,6 +62,8 @@ def test_sync_restores_repo_local_codex_skills(tmp_path: Path) -> None:
     assert ".agents/skills/planning-execution/SKILL.md" in sync_result.output
     assert ".agents/skills/memory-writeback/SKILL.md" in sync_result.output
     assert planning_skill.exists()
+    assert planning_skill.read_text(encoding="utf-8").startswith("---\nname:")
     assert "Planning Execution" in planning_skill.read_text(encoding="utf-8")
     assert "stale memory skill" not in memory_skill.read_text(encoding="utf-8")
+    assert memory_skill.read_text(encoding="utf-8").startswith("---\nname:")
     assert "Memory Writeback" in memory_skill.read_text(encoding="utf-8")

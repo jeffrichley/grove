@@ -6,6 +6,10 @@ import pytest
 from pydantic import ValidationError
 
 from grove.core.models import (
+    CodexSkillOutputRecord,
+    DoctorCheckSpec,
+    DoctorIssue,
+    DoctorReport,
     GeneratedFileRecord,
     GroveSection,
     InstalledPackRecord,
@@ -15,6 +19,7 @@ from grove.core.models import (
     PlannedFile,
     ProjectProfile,
     ProjectSection,
+    ToolHookOutputRecord,
 )
 
 
@@ -191,3 +196,107 @@ class TestManifestState:
         # Assert - ValidationError
         with pytest.raises(ValidationError):
             ManifestState(grove=GroveSection(version="0.1.0", schema_version=1))  # type: ignore[call-arg]
+
+
+@pytest.mark.unit
+class TestOwnershipAndDoctorModels:
+    """Ownership and doctor foundation models for remove/doctor planning."""
+
+    def test_tool_hook_output_record_round_trips(self) -> None:
+        """ToolHookOutputRecord serializes project-relative output ownership."""
+        # Arrange - create a tool hook ownership record
+        # with project-relative output data.
+        record = ToolHookOutputRecord(
+            pack_id="codex",
+            hook_id="codex-agents-shim",
+            tool="codex",
+            hook_type="managed_block",
+            path="AGENTS.md",
+        )
+
+        # Act - serialize the record and validate it back into the model type.
+        data = record.model_dump(mode="json")
+        restored = ToolHookOutputRecord.model_validate(data)
+
+        # Assert - the serialized path and restored ownership metadata are preserved.
+        assert data["path"] == "AGENTS.md"
+        assert restored.pack_id == "codex"
+        assert restored.hook_id == "codex-agents-shim"
+
+    def test_codex_skill_output_record_round_trips(self) -> None:
+        """CodexSkillOutputRecord preserves repo-local skill ownership paths."""
+        # Arrange - create a repo-local Codex skill ownership record.
+        record = CodexSkillOutputRecord(
+            pack_id="codex",
+            skill_id="codex-planning-execution",
+            path=".agents/skills/planning-execution/SKILL.md",
+        )
+
+        # Act - serialize and restore the skill ownership record.
+        data = record.model_dump(mode="json")
+        restored = CodexSkillOutputRecord.model_validate(data)
+
+        # Assert - the restored record keeps the expected skill path and identifier.
+        assert restored.path.endswith("SKILL.md")
+        assert restored.skill_id == "codex-planning-execution"
+
+    def test_doctor_check_spec_supports_front_matter_requirements(self) -> None:
+        """DoctorCheckSpec preserves target paths and front-matter requirements."""
+        # Arrange - define a doctor check that validates Codex skill front matter.
+        spec = DoctorCheckSpec(
+            pack_id="codex",
+            id="codex-skill-front-matter",
+            check_type="skill_front_matter",
+            description="Codex skills must declare required front matter.",
+            tool="codex",
+            skill_path=Path("planning-execution"),
+            required_front_matter=["name", "description"],
+            order=10,
+        )
+
+        # Act - round-trip the doctor check spec through JSON serialization.
+        data = spec.model_dump(mode="json")
+        restored = DoctorCheckSpec.model_validate(data)
+
+        # Assert - the restored check keeps the tool target
+        # and required front matter keys.
+        assert restored.tool == "codex"
+        assert restored.skill_path == Path("planning-execution")
+        assert restored.required_front_matter == ["name", "description"]
+
+    def test_doctor_report_defaults_to_healthy(self) -> None:
+        """DoctorReport defaults to a healthy state with no issues."""
+        # Arrange - no setup is required for the default doctor report state.
+
+        # Act - create a default report instance.
+        report = DoctorReport()
+
+        # Assert - a new report starts healthy with no issues.
+        assert report.healthy is True
+        assert report.issues == []
+
+    def test_doctor_issue_embeds_path_and_check_identity(self) -> None:
+        """DoctorIssue carries structured path, pack, and check identifiers."""
+        # Arrange - create a doctor issue and wrap it in a report for serialization.
+        issue = DoctorIssue(
+            code="codex-skill-missing-front-matter",
+            severity="error",
+            message="Codex skill is missing required front matter.",
+            path=".agents/skills/planning-execution/SKILL.md",
+            pack_id="codex",
+            check_id="codex-skill-front-matter",
+        )
+        report = DoctorReport(
+            healthy=False,
+            summary="1 error found.",
+            issues=[issue],
+        )
+
+        # Act - serialize and restore the doctor report.
+        data = report.model_dump(mode="json")
+        restored = DoctorReport.model_validate(data)
+
+        # Assert - the restored issue retains the original
+        # check identifier and health state.
+        assert restored.healthy is False
+        assert restored.issues[0].check_id == "codex-skill-front-matter"
