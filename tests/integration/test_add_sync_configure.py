@@ -1,5 +1,6 @@
 """Integration tests: grove add and grove sync CLI (Phase 1 of plan 003)."""
 
+import re
 from pathlib import Path
 
 import pytest
@@ -9,6 +10,13 @@ from grove.cli.app import app
 from grove.core.manifest import load_manifest
 
 runner = CliRunner()
+_USER_NOTES_PLACEHOLDER = (
+    "<!-- Add project-specific notes here. Grove sync must preserve this region. -->"
+)
+_GUIDANCE_ANCHOR_RE = (
+    r"(<!-- grove:anchor:guidance:start -->).*?"
+    r"(<!-- grove:anchor:guidance:end -->)"
+)
 
 
 def _init_grove(root: Path, pack: list[str] | None = None) -> None:
@@ -103,9 +111,9 @@ def test_sync_after_init_exits_zero_and_reports(tmp_path: Path) -> None:
     _init_grove(tmp_path, pack=["base", "python"])
     # Act - grove sync
     result = runner.invoke(app, ["sync", "--root", str(tmp_path)])
-    # Assert - exit 0 and output reports Updated or No managed files to update
+    # Assert - exit 0 and output reports Updated or No files to update
     assert result.exit_code == 0, result.output
-    assert "Updated:" in result.output or "No managed files to update." in result.output
+    assert "Updated:" in result.output or "No files to update." in result.output
 
 
 @pytest.mark.integration
@@ -128,21 +136,101 @@ def test_sync_dry_run_does_not_modify_files(tmp_path: Path) -> None:
 
 @pytest.mark.integration
 def test_sync_reverts_modified_managed_file(tmp_path: Path) -> None:
-    """Sync re-renders managed files; modified GROVE.md is overwritten."""
-    # Arrange - init then overwrite a managed file
+    """Sync restores anchor bodies while preserving user regions."""
+    # Arrange - init then modify generated and user-owned content
     (tmp_path / "pyproject.toml").write_text(
         '[project]\nname = "fixture"\nversion = "0.1.0"\n'
     )
     _init_grove(tmp_path, pack=["base", "python"])
     grove_md = tmp_path / ".grove" / "GROVE.md"
-    grove_md.write_text("corrupted content")
+    original = grove_md.read_text()
+    corrupted = original.replace("### Python Workflow", "### Corrupted Workflow")
+    corrupted = corrupted.replace(
+        _USER_NOTES_PLACEHOLDER,
+        "User note that must stay",
+    )
+    grove_md.write_text(corrupted)
     # Act - grove sync
     result = runner.invoke(app, ["sync", "--root", str(tmp_path)])
-    # Assert - exit 0, GROVE.md re-rendered (contains Grove / template content)
+    # Assert - exit 0, anchor body restored, user region preserved
     assert result.exit_code == 0, result.output
     content = grove_md.read_text()
-    assert "corrupted content" not in content
-    assert "GROVE" in content or "Grove" in content
+    assert "### Corrupted Workflow" not in content
+    assert "### Python Workflow" in content
+    assert "User note that must stay" in content
+
+
+@pytest.mark.integration
+def test_sync_rebuilds_anchor_body_when_anchor_skeleton_exists(tmp_path: Path) -> None:
+    """Sync reconstructs anchor bodies when stale generated content is removed."""
+    # Arrange - init then replace the guidance anchor body with stale content
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "fixture"\nversion = "0.1.0"\n'
+    )
+    _init_grove(tmp_path, pack=["base", "python"])
+    grove_md = tmp_path / ".grove" / "GROVE.md"
+    corrupted = re.sub(
+        _GUIDANCE_ANCHOR_RE,
+        r"\1Broken guidance body\2",
+        grove_md.read_text(),
+        count=1,
+        flags=re.S,
+    )
+    grove_md.write_text(corrupted)
+    # Act - grove sync
+    result = runner.invoke(app, ["sync", "--root", str(tmp_path)])
+    # Assert - sync succeeds and reconstructs the anchor body
+    assert result.exit_code == 0, result.output
+    content = grove_md.read_text()
+    assert "Broken guidance body" not in content
+    assert "### Python Workflow" in content
+
+
+@pytest.mark.integration
+def test_sync_fails_when_anchor_reconstruction_is_unsafe(tmp_path: Path) -> None:
+    """Sync fails clearly when a file loses required anchors."""
+    # Arrange - init then replace the file with content that has no safe skeleton
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "fixture"\nversion = "0.1.0"\n'
+    )
+    _init_grove(tmp_path, pack=["base", "python"])
+    grove_md = tmp_path / ".grove" / "GROVE.md"
+    grove_md.write_text("fully corrupted content")
+    # Act - grove sync
+    result = runner.invoke(app, ["sync", "--root", str(tmp_path)])
+    # Assert - sync reports unsafe reconstruction instead of overwriting blindly
+    assert result.exit_code != 0
+    assert "unsafe" in result.output.lower()
+    assert "anchor" in result.output.lower()
+
+
+@pytest.mark.integration
+def test_sync_is_idempotent_after_restoring_anchor_content(tmp_path: Path) -> None:
+    """A second sync after restoration yields no further changes."""
+    # Arrange - init, corrupt one anchor body, then run sync once
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "fixture"\nversion = "0.1.0"\n'
+    )
+    _init_grove(tmp_path, pack=["base", "python"])
+    grove_md = tmp_path / ".grove" / "GROVE.md"
+    grove_md.write_text(
+        re.sub(
+            _GUIDANCE_ANCHOR_RE,
+            r"\1Temporary guidance\2",
+            grove_md.read_text(),
+            count=1,
+            flags=re.S,
+        )
+    )
+    first = runner.invoke(app, ["sync", "--root", str(tmp_path)])
+    assert first.exit_code == 0, first.output
+    restored = grove_md.read_text()
+    # Act - sync a second time without intervening edits
+    second = runner.invoke(app, ["sync", "--root", str(tmp_path)])
+    # Assert - second sync reports no work and leaves file unchanged
+    assert second.exit_code == 0, second.output
+    assert "No files to update." in second.output
+    assert grove_md.read_text() == restored
 
 
 @pytest.mark.integration
