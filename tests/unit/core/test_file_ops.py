@@ -162,3 +162,26 @@ def test_apply_collision_overwrite_replaces(tmp_path: Path) -> None:
     # Assert - file content replaced and one generated file recorded
     assert (install_root / "greet.txt").read_text() == "Hello my-app!"
     assert len(result.generated_files) == 1
+
+
+@pytest.mark.unit
+def test_preview_uses_pre_rendered_content_when_present(tmp_path: Path) -> None:
+    """Composition-aware planned files bypass template rendering."""
+    # Arrange - a plan with pre-rendered content and no template dependency
+    install_root = tmp_path / ".grove"
+    plan = InstallPlan(
+        install_root=install_root,
+        files=[
+            PlannedFile(
+                pack_id="base",
+                src=Path("unused.j2"),
+                dst=install_root / "GROVE.md",
+                variables={},
+                rendered_content="pre-rendered",
+            )
+        ],
+    )
+    # Act - preview the plan
+    items = preview(plan, {})
+    # Assert - preview returns the pre-rendered content unchanged
+    assert items == [(install_root / "GROVE.md", "pre-rendered")]

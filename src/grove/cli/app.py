@@ -9,7 +9,7 @@ from typing import Annotated
 import typer
 
 from grove.analyzer import analyze
-from grove.core import apply, compose, save_manifest
+from grove.core import apply, compose, preview, save_manifest
 from grove.core.add import add_pack
 from grove.core.file_ops import ApplyOptions
 from grove.core.manifest import MANIFEST_SCHEMA_VERSION
@@ -17,11 +17,13 @@ from grove.core.models import (
     GroveSection,
     InitProvenance,
     InstalledPackRecord,
+    InstallPlan,
     ManifestState,
     ProjectSection,
 )
 from grove.core.registry import discover_packs, get_builtin_pack_roots_and_packs
 from grove.core.sync import run_sync
+from grove.core.tool_hooks import apply_tool_hooks
 from grove.exceptions import (
     GroveConfigError,
     GroveError,
@@ -137,12 +139,34 @@ def _run_init_flag_based(
     updated = apply(plan, manifest, options, pack_roots)
 
     if dry_run:
-        typer.echo("Dry run: would write .grove/ and manifest (no files changed).")
+        _echo_dry_run_preview(plan, pack_roots, root)
         return
 
     install_root.mkdir(parents=True, exist_ok=True)
+    apply_tool_hooks(root, updated, packs, profile)
     save_manifest(install_root / "manifest.toml", updated)
     typer.echo(f"Initialized .grove/ at {install_root}")
+
+
+def _echo_dry_run_preview(
+    plan: InstallPlan,
+    pack_roots: dict[str, Path],
+    root: Path,
+) -> None:
+    """Print a file-by-file dry-run preview for init.
+
+    Args:
+        plan: Install plan to preview.
+        pack_roots: Pack roots used for template rendering.
+        root: Project root used to relativize output paths.
+    """
+    typer.echo("Dry run: would write:")
+    for path, content in preview(plan, pack_roots):
+        rel_path = path.relative_to(root).as_posix()
+        typer.echo(f"--- {rel_path} ---")
+        typer.echo(content.rstrip())
+    typer.echo("--- .grove/manifest.toml ---")
+    typer.echo("[manifest preview omitted]")
 
 
 def _analysis_summary(profile: object) -> str:
@@ -224,7 +248,7 @@ def init(
     """
     try:
         root = _resolve_root(root)
-    except GroveError as e:
+    except (GroveError, ValueError, KeyError) as e:
         typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1) from e
 
@@ -238,7 +262,7 @@ def init(
 
     try:
         _run_init_flag_based(root, pack, dry_run)
-    except GroveError as e:
+    except (GroveError, ValueError, KeyError) as e:
         typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1) from e
 
@@ -281,14 +305,20 @@ def sync(
 
     if dry_run:
         typer.echo("Dry run: would write:")
-        for p in written:
-            typer.echo(f"  {p}")
+        for change in written:
+            typer.echo(f"  {change.path}")
+            for anchor_change in change.anchors:
+                typer.echo(f"    anchor: {anchor_change.anchor}")
+                for provenance in anchor_change.provenance:
+                    typer.echo(
+                        f"      from {provenance.pack_id}:{provenance.injection_id}"
+                    )
     elif written:
         typer.echo("Updated:")
-        for p in written:
-            typer.echo(f"  {p}")
+        for change in written:
+            typer.echo(f"  {change.path}")
     else:
-        typer.echo("No managed files to update.")
+        typer.echo("No files to update.")
 
 
 def _run_configure(root: Path) -> None:
@@ -365,7 +395,9 @@ def add(
             raise GroveManifestError("No Grove manifest; run 'grove init' first.")
         pack_roots, packs = get_builtin_pack_roots_and_packs()
         updated = add_pack(root, manifest_path, pack, pack_roots, packs)
-    except GroveError as e:
+        profile = analyze(root)
+        apply_tool_hooks(root, updated, packs, profile)
+    except (GroveError, ValueError, KeyError) as e:
         typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1) from e
 
@@ -390,7 +422,7 @@ def manage(
     """
     try:
         root = _resolve_root(root)
-    except GroveError as e:
+    except (GroveError, ValueError, KeyError) as e:
         typer.echo(f"Error: {e}", err=True)
         raise typer.Exit(1) from e
     if not sys.stdout.isatty():

@@ -15,6 +15,60 @@ templates = [
 ]
 setup_questions = []
 
+[[contributes.injections]]
+id = "python-grove-guidance"
+anchor = "guidance"
+source = "snippets/grove_guidance.md.j2"
+order = 10
+
+[[contributes.injections]]
+id = "python-index-rules"
+target = "INDEX.md"
+anchor = "rules"
+content = """
+### Python Rules
+
+Python-specific editing guidance and validation expectations for this repository.
+
+When to use: Use when editing Python runtime code, tests, or pack templates that drive Python workflows.
+
+Pointers:
+- `.grove/rules/python.md`
+"""
+order = 10
+
+[[contributes.injections]]
+id = "python-index-commands"
+target = "INDEX.md"
+anchor = "commands"
+content = """
+### Python Testing Commands
+
+Testing-focused command guidance for Python workflows.
+
+When to use: Use when running, updating, or debugging Python test workflows.
+
+Pointers:
+- `.grove/skills/python-testing.md`
+"""
+order = 20
+
+[[contributes.injections]]
+id = "python-index-docs"
+target = "INDEX.md"
+anchor = "docs"
+content = """
+### Python Reference
+
+Reference guidance for Python changes in this repository.
+
+When to use: Use when you need a quick reference for Python-specific repository expectations.
+
+Pointers:
+- `.grove/rules/python.md`
+"""
+order = 30
+
 # Path triggers for scoped rules (Grove Optimize: on-demand by path).
 [[contributes.rules]]
 paths = ["**/*.py", "tests/**", "src/**"]

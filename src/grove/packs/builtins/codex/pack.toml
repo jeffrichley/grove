@@ -1,0 +1,30 @@
+# Codex integration pack: repo-root AGENTS.md shim and future Codex surfaces.
+
+id = "codex"
+name = "Codex Integration Pack"
+version = "0.1.0"
+depends_on = ["base"]
+compatible_with = ["codex"]
+activates_when = []
+
+[contributes]
+
+[[contributes.tool_hooks]]
+id = "codex-agents-shim"
+tool = "codex"
+hook_type = "managed_block"
+target = "AGENTS.md"
+source = "hooks/agents.md.j2"
+order = 10
+
+[[contributes.codex_skills]]
+id = "codex-planning-execution"
+path = "planning-execution"
+source = "skills/planning-execution/SKILL.md.j2"
+order = 10
+
+[[contributes.codex_skills]]
+id = "codex-memory-writeback"
+path = "memory-writeback"
+source = "skills/memory-writeback/SKILL.md.j2"
+order = 20

@@ -11,9 +11,6 @@ activates_when = []
 [contributes]
 templates = [
     "GROVE.md.j2",
-    "plans/.gitkeep.j2",
-    "handoffs/.gitkeep.j2",
-    "handoffs/HANDOFF_TEMPLATE.md.j2",
-    "decisions/.gitkeep.j2",
+    "INDEX.md.j2",
 ]
 setup_questions = []

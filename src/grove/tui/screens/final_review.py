@@ -20,6 +20,7 @@ from grove.core.models import (
     ProjectSection,
 )
 from grove.core.registry import discover_packs
+from grove.core.tool_hooks import apply_tool_hooks
 from grove.tui.screens.base import GroveBaseScreen, _Bindings
 from grove.tui.screens.finish import FinishScreen
 from grove.tui.state import SetupState
@@ -223,6 +224,7 @@ class FinalReviewScreen(GroveBaseScreen):
             collision_overrides=overrides or None,
         )
         install_root.mkdir(parents=True, exist_ok=True)
+        apply_tool_hooks(state.root, updated, packs, state.profile)
         save_manifest(install_root / "manifest.toml", updated)
         state.manifest = updated
         self.app.push_screen(FinishScreen(state))

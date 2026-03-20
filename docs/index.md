@@ -2,7 +2,7 @@
 
 **Grove** is a modular skill framework for AI coding agents that orchestrates the complete software development lifecycle—from idea and architecture through implementation, testing, and release—enabling autonomous end-to-end software creation.
 
-Instead of manually curating a large `.ai`-style tree that tends to grow out of control, you run a CLI that analyzes your repo, lets you select capabilities (base + optional packs), and writes a lean `.grove/` structure with rules, plans, handoffs, and **project-specific skills** generated from templates and repo facts.
+Instead of manually curating a large `.ai`-style tree that tends to grow out of control, you run a CLI that analyzes your repo, lets you select capabilities (base + optional packs), and writes a lean `.grove/` structure with shared anchors, scoped docs, commands, memory, and **project-specific skills** generated from templates and repo facts.
 
 ---
 
@@ -40,7 +40,7 @@ Instead of manually curating a large `.ai`-style tree that tends to grow out of 
 
 | Area | Description |
 |------|-------------|
-| **Context system** | A persistent “grove” of knowledge (plans, decisions, handoffs) instead of fragile chat memory. See [GROVE framework](concept.md). |
+| **Context system** | A persistent “grove” of layered guidance and durable project context instead of fragile chat memory. See [GROVE framework](concept.md). |
 | **CLI** | `grove init`, `grove configure`, `grove add`, `grove sync` to bootstrap and maintain a `.grove/` installation. See [CLI reference](cli.md). |
 | **Packs** | Base pack (required) plus optional capability packs (e.g. Python, CLI). See [Pack author guide](pack-author-guide.md) to create or extend packs. |
 | **Manifest** | `.grove/manifest.toml` tracks installed packs and generated files so you can re-sync safely. |

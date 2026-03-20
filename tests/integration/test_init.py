@@ -89,6 +89,33 @@ def test_init_dry_run_in_process(tmp_path: Path) -> None:
 
 
 @pytest.mark.integration
+def test_init_dry_run_prints_composed_grove_preview(tmp_path: Path) -> None:
+    """Dry-run output includes composed GROVE content and anchor-injected text."""
+    # Arrange - project with pyproject.toml
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "fixture"\nversion = "0.1.0"\n'
+    )
+    # Act - invoke CLI in-process so we can inspect dry-run output
+    result = runner.invoke(
+        app,
+        [
+            "init",
+            "--root",
+            str(tmp_path),
+            "--pack",
+            "base",
+            "--pack",
+            "python",
+            "--dry-run",
+        ],
+    )
+    # Assert - dry-run shows composed file preview, including injected anchor content
+    assert result.exit_code == 0, result.output
+    assert "--- .grove/GROVE.md ---" in result.output
+    assert "### Python Workflow" in result.output
+
+
+@pytest.mark.integration
 def test_init_flag_based_in_process(tmp_path: Path) -> None:
     """In-process: init --pack base --pack python creates .grove/ and manifest."""
     # Arrange - project with pyproject.toml

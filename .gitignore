@@ -204,6 +204,8 @@ cython_debug/
 # Agent / workflow scratch (local only)
 .pr-body.md
 .ai/HANDOFF.md
+tmp/feedback.md
+tmp/phase2d-smoke/
 
 # Grove CLI generated output (from grove init)
 .grove/

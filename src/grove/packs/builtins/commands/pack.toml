@@ -1,0 +1,28 @@
+id = "commands"
+name = "Commands Pack"
+version = "0.1.0"
+depends_on = ["base"]
+compatible_with = []
+activates_when = []
+
+[contributes]
+templates = [
+    "commands/README.md.j2",
+]
+setup_questions = []
+
+[[contributes.injections]]
+id = "commands-index-commands"
+target = "INDEX.md"
+anchor = "commands"
+content = """
+### Project Commands
+
+Project-local command notes and command groups that users can expand later.
+
+When to use: Use when you want a durable index of commands worth keeping around.
+
+Pointers:
+- `.grove/commands/README.md`
+"""
+order = 40

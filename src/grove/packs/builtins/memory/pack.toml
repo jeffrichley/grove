@@ -1,0 +1,28 @@
+id = "memory"
+name = "Memory Pack"
+version = "0.1.0"
+depends_on = ["base"]
+compatible_with = []
+activates_when = []
+
+[contributes]
+templates = [
+    "memory/README.md.j2",
+]
+setup_questions = []
+
+[[contributes.injections]]
+id = "memory-index-docs"
+target = "INDEX.md"
+anchor = "docs"
+content = """
+### Project Memory
+
+Small, user-owned notes and state that Grove should preserve across syncs.
+
+When to use: Use when you want a durable scratchpad for current state or recurring context.
+
+Pointers:
+- `.grove/memory/README.md`
+"""
+order = 40

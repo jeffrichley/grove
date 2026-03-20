@@ -30,5 +30,18 @@ def render(template_path: Path, variables: dict[str, object]) -> str:
         raise FileNotFoundError(f"Template not found: {path}")
 
     source = path.read_text(encoding="utf-8")
-    template = Template(source, autoescape=False, undefined=StrictUndefined)
+    return render_string(source, variables)
+
+
+def render_string(template_source: str, variables: dict[str, object]) -> str:
+    """Render template source provided directly as a string.
+
+    Args:
+        template_source: Template source text.
+        variables: Dict of variable names to values for substitution.
+
+    Returns:
+        Rendered content as a string.
+    """
+    template = Template(template_source, autoescape=False, undefined=StrictUndefined)
     return template.render(**variables)
