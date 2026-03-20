@@ -12,6 +12,11 @@ Full documentation is built with [MkDocs](https://www.mkdocs.org/) and the [Mate
 
 See the [docs](docs/index.md) for the GROVE framework, CLI reference, and pack author guide.
 
+## Install
+
+- **Run from source with uv:** `uv sync --all-groups` then `uv run grove --help`
+- **Install the CLI into an environment:** `uv pip install .` then `grove --help`
+
 ## CLI
 
 - **`grove init`** — First-time setup: interactive TUI or `--pack base --pack python` (creates `.grove/` and manifest). With existing manifest, opens manage TUI.
@@ -26,4 +31,5 @@ See the [docs](docs/index.md) for the GROVE framework, CLI reference, and pack a
 - **Pre-commit** (run once per clone): `just pre-commit-install` (or `uv run pre-commit install` and `uv run pre-commit install --hook-type commit-msg`).
 - **Quality**: `just quality-check` (CI-safe, no writes) or `just quality` (format + fix + all checks); `just test-cov` (tests with coverage). Before commit/PR: `just quality && just test`.
 - **Docs**: `just docs-serve` to browse; `just docs-check` to validate (included in `just quality`).
+- **Pack authoring**: see [docs/pack-author-guide.md](docs/pack-author-guide.md) for `pack.toml`, templates, injections, tool hooks, and built-in pack layout.
 - **Commit**: `just commit` for conventional commits via Commitizen.

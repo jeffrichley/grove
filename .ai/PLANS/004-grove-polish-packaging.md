@@ -123,11 +123,11 @@ git show-ref --verify --quiet "refs/heads/${BRANCH_NAME}" \
 
 **Tasks:**
 
-- [ ] Audit `src/grove/exceptions.py`: ensure docstrings describe when each type is used.
-- [ ] Audit `src/grove/cli/app.py`: for each command, list raise/catch paths and ensure message is actionable; add or adjust messages as needed.
-- [ ] Audit `src/grove/core/sync.py`, `add.py` (and add_impl/add_apply): ensure `GroveManifestError`/`GrovePackError` messages are clear.
-- [ ] Audit `src/grove/packs/loader.py`: `FileNotFoundError` and `ValueError` messages (loader is used by core; messages surface to CLI).
-- [ ] Optionally add a short "Error message conventions" note in plan or in .ai/REF for future contributors.
+- [x] Audit `src/grove/exceptions.py`: ensure docstrings describe when each type is used.
+- [x] Audit `src/grove/cli/app.py`: for each command, list raise/catch paths and ensure message is actionable; add or adjust messages as needed.
+- [x] Audit `src/grove/core/sync.py`, `add.py` (and add_impl/add_apply): ensure `GroveManifestError`/`GrovePackError` messages are clear.
+- [x] Audit `src/grove/packs/loader.py`: `FileNotFoundError` and `ValueError` messages (loader is used by core; messages surface to CLI).
+- [x] Optionally add a short "Error message conventions" note in plan or in .ai/REF for future contributors.
 
 ### Phase 2a: MkDocs documentation system
 
@@ -159,9 +159,9 @@ git show-ref --verify --quiet "refs/heads/${BRANCH_NAME}" \
 
 **Tasks:**
 
-- [ ] Review README.md: CLI bullets, Development (setup, quality, docs, commit). Add or fix install line (e.g. `uv pip install .` or `pip install -e .`) if missing.
-- [ ] Run `grove init --help`, `grove configure --help`, `grove manage --help`, `grove add --help`, `grove sync --help`; diff against actual behavior and fix Typer docstrings in `src/grove/cli/app.py` if needed.
-- [ ] Ensure no stale references (e.g. "grove doctor" only in future/post-MVP context if at all).
+- [x] Review README.md: CLI bullets, Development (setup, quality, docs, commit). Add or fix install line (e.g. `uv pip install .` or `pip install -e .`) if missing.
+- [x] Run `grove init --help`, `grove configure --help`, `grove manage --help`, `grove add --help`, `grove sync --help`; diff against actual behavior and fix Typer docstrings in `src/grove/cli/app.py` if needed.
+- [x] Ensure no stale references (e.g. "grove doctor" only in future/post-MVP context if at all).
 
 ### Phase 3: Pack author guide
 
@@ -174,9 +174,9 @@ git show-ref --verify --quiet "refs/heads/${BRANCH_NAME}" \
 
 **Tasks:**
 
-- [ ] CREATE `docs/pack-author-guide.md` (or `docs/dev/pack-author-guide.md`): structure per Solution Statement (pack layout, pack.toml fields, contributes, template conventions, adding a builtin). Use base and python pack.toml + directory layout as examples.
-- [ ] Cross-link README to pack author guide (e.g. under Development: "To add a new pack, see docs/pack-author-guide.md" or similar).
-- [ ] VALIDATE: run through steps in the guide mentally or in a scratch dir to ensure instructions are complete (discovery order pack.toml/pack.yaml/pack.yml; YAML not supported yet—note in guide).
+- [x] CREATE `docs/pack-author-guide.md` (or `docs/dev/pack-author-guide.md`): structure per Solution Statement (pack layout, pack.toml fields, contributes, template conventions, adding a builtin). Use base and python pack.toml + directory layout as examples.
+- [x] Cross-link README to pack author guide (e.g. under Development: "To add a new pack, see docs/pack-author-guide.md" or similar).
+- [x] VALIDATE: run through steps in the guide mentally or in a scratch dir to ensure instructions are complete (discovery order pack.toml/pack.yaml/pack.yml; YAML not supported yet—note in guide).
 
 ### Phase 4: Validation and packaging confirmation
 
@@ -189,10 +189,10 @@ git show-ref --verify --quiet "refs/heads/${BRANCH_NAME}" \
 
 **Tasks:**
 
-- [ ] Run `just quality && just test`; fix any regressions.
-- [ ] Confirm install: `uv pip install .` (or `pip install -e .`) and run `grove --help` from a clean env; document in README if not already.
-- [ ] Update `docs/dev/roadmap.md`: add Priority 4 "Phase 4: Polish and packaging" with status Next (or Done when complete); link to this plan.
-- [ ] Update `docs/dev/status.md`: set Current Focus to this plan while in progress; move to Recently Completed when done; add diary entry.
+- [x] Run `just quality && just test`; fix any regressions.
+- [x] Confirm install: `uv pip install .` (or `pip install -e .`) and run `grove --help` from a clean env; document in README if not already.
+- [x] Update `docs/dev/roadmap.md`: add Priority 4 "Phase 4: Polish and packaging" with status Next (or Done when complete); link to this plan.
+- [x] Update `docs/dev/status.md`: set Current Focus to this plan while in progress; move to Recently Completed when done; add diary entry.
 
 ---
 
@@ -281,23 +281,23 @@ Execute in order. Validate after each step where applicable.
 
 ## ACCEPTANCE CRITERIA
 
-- [ ] All CLI and core user-facing error messages are clear and actionable.
-- [ ] README CLI and Development sections are accurate; install path documented.
-- [ ] Pack author guide exists and describes pack.toml schema, contributes, templates, and adding a builtin.
-- [ ] README links to pack author guide for pack creation.
-- [ ] `just quality && just test` pass.
-- [ ] Roadmap and status updated; new contributor can add a pack by following the guide.
+- [x] All CLI and core user-facing error messages are clear and actionable.
+- [x] README CLI and Development sections are accurate; install path documented.
+- [x] Pack author guide exists and describes pack.toml schema, contributes, templates, and adding a builtin.
+- [x] README links to pack author guide for pack creation.
+- [x] `just quality && just test` pass.
+- [x] Roadmap and status updated; new contributor can add a pack by following the guide.
 
 ---
 
 ## COMPLETION CHECKLIST
 
-- [ ] All tasks completed in order
-- [ ] Each task validation passed
-- [ ] `just quality && just test` passes
-- [ ] Manual check: error paths and --help accurate; install works
-- [ ] Pack author guide reviewed for completeness
-- [ ] Acceptance criteria met
+- [x] All tasks completed in order
+- [x] Each task validation passed
+- [x] `just quality && just test` passes
+- [x] Manual check: error paths and --help accurate; install works
+- [x] Pack author guide reviewed for completeness
+- [x] Acceptance criteria met
 
 ---
 
@@ -328,3 +328,40 @@ Execute in order. Validate after each step where applicable.
 - **Validation:** `just docs-check` and `just quality` pass. `just docs-serve` serves site at http://127.0.0.1:8000.
 
 *(Append further phases here as they complete.)*
+
+### Phase 1: Error handling and message audit — completed 2026-03-20
+
+- **Completed tasks:**
+  - Audited `src/grove/exceptions.py` docstrings so each Grove exception explains when it should be raised.
+  - Audited CLI failure paths in `src/grove/cli/app.py`; introduced `_exit_with_error()` to keep operator-visible error formatting consistent.
+  - Tightened interactive-command guidance for `configure` and `manage` and confirmed add/sync/root-resolution errors remain actionable.
+  - Reviewed sync/add/loader message surfaces; existing no-manifest and unknown-pack messages already met the clarity requirement.
+- **Validation:** Manual help/error-path scan plus final gate validation in Phase 4.
+
+### Phase 2b: User-facing docs (README and command help) — completed 2026-03-20
+
+- **Completed tasks:**
+  - Added an explicit **Install** section to `README.md` covering both `uv sync --all-groups` + `uv run grove` and `uv pip install .`.
+  - Added a direct pack-authoring link under README Development guidance.
+  - Ran `uv run grove --help`, `uv run grove init --help`, `uv run grove configure --help`, `uv run grove manage --help`, `uv run grove add --help`, and `uv run grove sync --help`.
+  - Trimmed Typer command docstrings so command help reads cleanly and matches actual behavior.
+- **Validation:** Help output now reflects the interactive/non-interactive split and current command surface without stale `doctor` claims.
+
+### Phase 3: Pack author guide — completed 2026-03-20
+
+- **Completed tasks:**
+  - Reviewed and expanded `docs/pack-author-guide.md` to cover modern contribution shapes beyond templates/injections, including `index_entries`, `tool_hooks`, and Codex skill materialization.
+  - Added explicit guidance that tool-native shims/skills belong in integration packs, not the base pack.
+  - Kept the existing builtin-pack examples and YAML-not-supported note intact.
+- **Validation:** Guide now covers the pack surface that exists in the current codebase and docs site.
+
+### Phase 4: Validation and packaging confirmation — completed 2026-03-20
+
+- **Completed tasks:**
+  - Confirmed install flow with `uv pip install .` and verified `grove --help` from the installed environment.
+  - Updated `docs/dev/roadmap.md` and `docs/dev/status.md` to record Plan 004 completion.
+  - Marked this plan complete and checked all acceptance/closure boxes.
+- **Validation:**
+  - `just quality && just test` — pass
+  - `uv pip install .` — pass
+  - `grove --help` after install — pass

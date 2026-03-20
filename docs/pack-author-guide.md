@@ -63,6 +63,9 @@ Optional top-level fields:
   source = "snippets/guidance.md.j2"
   order = 10
   ```
+- **`index_entries`** — Optional structured INDEX contributions rendered into `.grove/INDEX.md` sections such as `rules`, `commands`, `tools`, and `docs`.
+- **`tool_hooks`** — Optional tool-native shim outputs such as repo-root `AGENTS.md`. These are rendered by the generic tool hook pipeline and owned by the integration pack.
+- **`codex_skills`** — Optional Codex skill materialization entries for repo-local `.agents/skills/`. Use these in a Codex integration pack rather than storing skill bodies under `.grove/`.
 
 ---
 
@@ -124,6 +127,7 @@ paths = ["**/*.py", "tests/**", "src/**"]
   - **Setup answers** — User answers to pack `setup_questions` (keyed by question id).
 - **Paths:** Template paths in `contributes.templates` are relative to the pack root. Destinations are under the install root (e.g. `.grove/`).
 - **Anchor-owned files:** Rendered files are recorded in the manifest; `grove sync` rebuilds `grove:anchor:*` regions from current profile and contributions while preserving `grove:user:*` regions.
+- **Tool integrations:** Tool-native files are owned by integration packs. For example, the built-in Codex integration pack contributes an `AGENTS.md` shim and materializes skills into `.agents/skills/`.
 
 ---
 
@@ -133,6 +137,7 @@ paths = ["**/*.py", "tests/**", "src/**"]
 2. Add `pack.toml` with `id`, `name`, `version`, and `[contributes]` (at least `templates`).
 3. Add template files (`.j2`) and reference them in `contributes.templates`.
 4. The registry discovers packs from the builtins directory; no code changes needed to register the pack. Ensure dependency order: if your pack `depends_on` another, that pack must be present in builtins.
+5. If your pack integrates with a tool, keep tool-native shims and skills in that tool's integration pack rather than the base pack.
 
 ---
 
@@ -142,3 +147,4 @@ paths = ["**/*.py", "tests/**", "src/**"]
 - **Loader:** `src/grove/packs/loader.py` — `load_pack_manifest()`, discovery order.
 - **Composer:** `src/grove/core/composer.py` — How `contributes.templates` are used and dependency order.
 - **Renderer:** `src/grove/core/renderer.py` — Jinja2 rendering and variable context.
+- **Tool hook pipeline:** `src/grove/core/tool_hooks.py` — Generic hook and Codex skill materialization flow.
