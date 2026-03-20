@@ -606,7 +606,31 @@ def _unexpected_tool_hook_issues(
     Returns:
         Issues for orphaned or unexpected managed tool-hook blocks.
     """
-    expected_by_path = {
+    expected_by_path = _expected_tool_hook_blocks_by_path(context, selected_ids)
+    return [
+        issue
+        for path in _known_tool_hook_paths(context)
+        for issue in [
+            _unexpected_tool_hook_issue_for_path(context, path, expected_by_path)
+        ]
+        if issue is not None
+    ]
+
+
+def _expected_tool_hook_blocks_by_path(
+    context: RemoveContext,
+    selected_ids: set[str],
+) -> dict[str, set[tuple[str, str]]]:
+    """Return expected managed tool-hook block ids keyed by target path.
+
+    Args:
+        context: Shared doctor context with packs and profile.
+        selected_ids: Currently selected pack ids.
+
+    Returns:
+        Expected `(tool, hook_id)` pairs keyed by project-relative target path.
+    """
+    return {
         state.path: {
             (tool, hook_id)
             for tool, hook_id in zip(state.tools, state.hook_ids, strict=True)
@@ -618,8 +642,19 @@ def _unexpected_tool_hook_issues(
             selected_ids,
         )
     }
+
+
+def _known_tool_hook_paths(context: RemoveContext) -> list[str]:
+    """Return deterministic tool-hook target paths from all known packs.
+
+    Args:
+        context: Shared doctor context with the available pack registry.
+
+    Returns:
+        Sorted project-relative tool-hook target paths.
+    """
     all_pack_ids = {pack.id for pack in context.packs}
-    known_paths = {
+    return sorted(
         state.path
         for state in plan_tool_hook_targets(
             context.root,
@@ -627,39 +662,48 @@ def _unexpected_tool_hook_issues(
             context.profile,
             all_pack_ids,
         )
-    }
-    issues: list[DoctorIssue] = []
-    for path in sorted(known_paths):
-        target = context.root / path
-        if not target.exists():
-            continue
-        actual_blocks = _tool_hook_blocks_in_text(target.read_text(encoding="utf-8"))
-        if not actual_blocks:
-            continue
-        expected_blocks = expected_by_path.get(path, set())
-        unexpected_blocks = sorted(actual_blocks - expected_blocks)
-        if not unexpected_blocks:
-            continue
-        code = (
+    )
+
+
+def _unexpected_tool_hook_issue_for_path(
+    context: RemoveContext,
+    path: str,
+    expected_by_path: dict[str, set[tuple[str, str]]],
+) -> DoctorIssue | None:
+    """Return one orphan/unexpected tool-hook issue for a target path.
+
+    Args:
+        context: Shared doctor context with project root information.
+        path: Project-relative tool-hook target path to inspect.
+        expected_by_path: Expected managed hook blocks keyed by target path.
+
+    Returns:
+        One issue when the target contains stale managed blocks, else `None`.
+    """
+    target = context.root / path
+    if not target.exists():
+        return None
+    actual_blocks = _tool_hook_blocks_in_text(target.read_text(encoding="utf-8"))
+    if not actual_blocks:
+        return None
+    expected_blocks = expected_by_path.get(path, set())
+    if not actual_blocks - expected_blocks:
+        return None
+    return DoctorIssue(
+        code=(
             "tool-hook-block-orphan"
             if not expected_blocks
             else "tool-hook-block-unexpected"
-        )
-        message = (
+        ),
+        severity=_WARNING,
+        message=(
             "Managed tool hook block exists for a pack that is not currently selected."
             if not expected_blocks
             else "Target file contains managed tool hook blocks that are not expected "
             "for the current pack set."
-        )
-        issues.append(
-            DoctorIssue(
-                code=code,
-                severity=_WARNING,
-                message=message,
-                path=path,
-            )
-        )
-    return issues
+        ),
+        path=path,
+    )
 
 
 def _pack_local_skill_issues(
