@@ -4,7 +4,7 @@ import sys
 from importlib.metadata import version
 from importlib.resources import as_file, files
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Never
 
 import typer
 
@@ -48,6 +48,19 @@ def _callback(
     if ctx.invoked_subcommand is not None:
         return
     typer.echo(ctx.get_help())
+
+
+def _exit_with_error(message: str) -> Never:
+    """Print a CLI error and exit non-zero.
+
+    Args:
+        message: User-facing error text. It should already be actionable.
+
+    Raises:
+        typer.Exit: Always exits with status code 1 after printing the message.
+    """
+    typer.echo(f"Error: {message}", err=True)
+    raise typer.Exit(1)
 
 
 def _run_init_tui(root: Path) -> None:
@@ -232,25 +245,21 @@ def init(
         ),
     ] = False,
 ) -> None:
-    """Initialize .grove/ with Base Pack and optional capability packs.
+    """Initialize Grove in a project.
 
-    Runs analyzer on --root, composes an install plan from selected packs,
-    renders templates, and writes .grove/ and manifest.toml. Use --dry-run
-    to preview without writing.
+    In a TTY with no `--pack` flags, this launches the interactive init flow.
+    Otherwise it runs the non-interactive install path and writes `.grove/`
+    plus `.grove/manifest.toml`. Use `--dry-run` to preview without writing.
 
     Args:
         root: Project root directory (default: current directory).
-        pack: Pack ids to install (default: base, python).
-        dry_run: If True, do not write files.
-
-    Raises:
-        typer.Exit: On validation error (e.g. root not a dir, unknown pack).
+        pack: Pack ids to install for non-interactive init.
+        dry_run: If True, report writes without changing files.
     """
     try:
         root = _resolve_root(root)
     except (GroveError, ValueError, KeyError) as e:
-        typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1) from e
+        _exit_with_error(str(e))
 
     if pack is None and sys.stdout.isatty():
         manifest_path = root / ".grove" / "manifest.toml"
@@ -263,8 +272,7 @@ def init(
     try:
         _run_init_flag_based(root, pack, dry_run)
     except (GroveError, ValueError, KeyError) as e:
-        typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1) from e
+        _exit_with_error(str(e))
 
 
 @app.command()
@@ -281,17 +289,15 @@ def sync(
         ),
     ] = False,
 ) -> None:
-    """Re-render managed files from current templates and profile.
+    """Re-render managed files from the current templates and profile.
 
-    Requires an existing Grove manifest (.grove/manifest.toml). Writes only
-    paths listed in the manifest; does not add or remove files from the manifest.
+    This command requires an existing `.grove/manifest.toml` and only rewrites
+    paths tracked in that manifest. Use `--dry-run` to report pending changes
+    without writing them.
 
     Args:
         root: Project root directory (default: current directory).
-        dry_run: If True, do not write files; report what would be written.
-
-    Raises:
-        typer.Exit: When manifest is missing or invalid.
+        dry_run: If True, report writes without changing files.
     """
     try:
         root = _resolve_root(root)
@@ -300,8 +306,7 @@ def sync(
             raise GroveManifestError("No Grove manifest; run 'grove init' first.")
         written = run_sync(root, dry_run=dry_run)
     except GroveError as e:
-        typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1) from e
+        _exit_with_error(str(e))
 
     if dry_run:
         typer.echo("Dry run: would write:")
@@ -341,30 +346,24 @@ def configure(
         typer.Option("--root", "-r", help="Project root (default: current directory)."),
     ] = None,
 ) -> None:
-    """Open Grove setup: init wizard or manage dashboard by manifest presence.
+    """Open the interactive Grove setup or manage dashboard.
 
-    With no .grove/manifest.toml, runs the full init TUI. With an existing
-    manifest, runs the manage TUI (installed packs, add pack, re-run analysis,
-    full re-setup).
+    With no `.grove/manifest.toml`, this launches the full init TUI. With an
+    existing manifest, it launches the manage TUI for installed packs, re-run
+    analysis, and full re-setup actions.
 
     Args:
         root: Project root directory (default: current directory).
-
-    Raises:
-        typer.Exit: On root resolution error or when not run in a TTY.
     """
     try:
         root = _resolve_root(root)
     except GroveError as e:
-        typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1) from e
+        _exit_with_error(str(e))
     if not sys.stdout.isatty():
-        typer.echo(
+        _exit_with_error(
             "Configure is interactive; run in a terminal, or use "
-            "'grove init --pack' for non-interactive init.",
-            err=True,
+            "'grove init --pack' for non-interactive init."
         )
-        raise typer.Exit(1)
     _run_configure(root)
 
 
@@ -378,15 +377,13 @@ def add(
 ) -> None:
     """Add a pack to an existing Grove installation.
 
-    Requires an existing manifest (.grove/manifest.toml). Resolves
-    dependencies and updates the manifest and generated files.
+    This command requires `.grove/manifest.toml`, resolves any missing
+    dependencies for the requested pack, applies new generated files, and then
+    updates the manifest.
 
     Args:
-        pack: Pack id to install.
+        pack: Pack id to add.
         root: Project root directory (default: current directory).
-
-    Raises:
-        typer.Exit: When manifest is missing or pack not found.
     """
     try:
         root = _resolve_root(root)
@@ -398,8 +395,7 @@ def add(
         profile = analyze(root)
         apply_tool_hooks(root, updated, packs, profile)
     except (GroveError, ValueError, KeyError) as e:
-        typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1) from e
+        _exit_with_error(str(e))
 
     save_manifest(manifest_path, updated)
     typer.echo(f"Added pack {pack}.")
@@ -412,25 +408,23 @@ def manage(
         typer.Option("--root", "-r", help="Project root (default: current directory)."),
     ] = None,
 ) -> None:
-    """Alias for configure: open init or manage TUI by manifest presence.
+    """Alias for `grove configure`.
+
+    This opens the init TUI when no manifest exists and the manage dashboard
+    when `.grove/manifest.toml` is already present.
 
     Args:
         root: Project root directory (default: current directory).
-
-    Raises:
-        typer.Exit: On root resolution error or when not run in a TTY.
     """
     try:
         root = _resolve_root(root)
     except (GroveError, ValueError, KeyError) as e:
-        typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1) from e
+        _exit_with_error(str(e))
     if not sys.stdout.isatty():
-        typer.echo(
-            "Manage is interactive; run in a terminal.",
-            err=True,
+        _exit_with_error(
+            "Manage is interactive; run in a terminal, or use "
+            "'grove add'/'grove sync' for non-interactive maintenance."
         )
-        raise typer.Exit(1)
     _run_configure(root)
 
 

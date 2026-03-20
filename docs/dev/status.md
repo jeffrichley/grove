@@ -5,10 +5,11 @@ last_updated: 2026-03-20
 
 ## Current Focus
 
-- Plan 005 is complete. Next feature plan is not yet selected.
+- Plan 004 and Plan 005 are complete. Next feature plan is not yet selected.
 
 ## Recently Completed
 
+- **Plan 004 complete:** CLI/help and error-message polish, install-path confirmation, pack author guide completion, and roadmap/status closure are complete. Source: `.ai/PLANS/004-grove-polish-packaging.md`.
 - **Plan 005 Phase 2G (validation and observability):** `grove sync --dry-run` now reports changed anchors with pack/injection provenance, sync paths are project-root-relative, and provenance coverage landed in unit and integration tests. Source: `.ai/PLANS/005-grove-phase2-composition.md`.
 - **Plan 005 complete:** Grove Phase 2 composition, safe sync, generic pack-owned tool integrations, Codex shim generation, Codex skill materialization, and provenance/dry-run observability are all complete. Source: `.ai/PLANS/005-grove-phase2-composition.md`.
 - **Plan 005 Phase 2F (pack-owned Codex skills materialization):** Codex skill contributions now materialize through the generic integration pipeline into repo-local `.agents/skills`, with built-in `planning-execution` and `memory-writeback` skills and integration coverage for repo-local installs. Source: `.ai/PLANS/005-grove-phase2-composition.md`.
@@ -23,6 +24,7 @@ last_updated: 2026-03-20
 
 ## Diary Log
 
+- 2026-03-20: Plan 004 completed: CLI help and error wording audited, install path confirmed with `uv pip install .`, pack author guide extended for integration packs/tool hooks, and roadmap/status updated.
 - 2026-03-20: Status sync run for `.ai/PLANS/005-grove-phase2-composition.md` after Phase 2G; Plan 005 marked complete; docs-check and status pass.
 - 2026-03-20: Plan 005 Phase 2G complete: sync dry-run now reports changed anchors plus provenance, project-root-relative output landed, and final gates passed.
 - 2026-03-20: Status sync run for `.ai/PLANS/005-grove-phase2-composition.md` after Phase 2F; current focus advanced to Phase 2G validation and observability; docs-check and status pass.
