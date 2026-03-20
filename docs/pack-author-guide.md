@@ -6,8 +6,8 @@ This guide explains how to create and add **packs** to Grove. A pack is a bundle
 
 ## Overview
 
-- **Base pack** — Required; provides `.grove/` layout, manifest, plans, handoffs, decisions. Always installed.
-- **Capability packs** — Optional (e.g. Python, CLI). Each pack has a manifest (`pack.toml`) and contributes templates, rules, and optionally setup questions.
+- **Base pack** — Required; provides the core `.grove/` anchor infrastructure (`GROVE.md`, `INDEX.md`). Always installed.
+- **Capability packs** — Optional (e.g. Python, memory, commands). Each pack has a manifest (`pack.toml`) and contributes templates, rules, and optionally setup questions.
 
 Packs are **data-driven**: the CLI discovers them from manifests (e.g. `pack.toml`); there is no hard-coded pack list in the TUI.
 
@@ -48,12 +48,20 @@ Optional top-level fields:
 
 ### `[contributes]` section
 
-- **`templates`** — List of template paths (relative to pack root), e.g. `["GROVE.md.j2", "plans/.gitkeep.j2"]`. Rendered with Jinja2; variables come from the project profile and setup answers.
+- **`templates`** — List of template paths (relative to pack root), e.g. `["GROVE.md.j2", "INDEX.md.j2"]`. Rendered with Jinja2; variables come from the project profile and setup answers.
 - **`setup_questions`** — Optional list of questions the TUI shows when the pack is selected (structure defined by the TUI).
 - **`rules`** — Optional path-triggered rules (e.g. for scoped context). Example:
   ```toml
   [[contributes.rules]]
   paths = ["**/*.py", "tests/**", "src/**"]
+  ```
+- **`injections`** — Optional anchored content contributions. Phase 2 uses anchor-first composition, so a pack can target an anchor and optionally narrow it to one file. Example:
+  ```toml
+  [[contributes.injections]]
+  id = "python-guidance"
+  anchor = "guidance"
+  source = "snippets/guidance.md.j2"
+  order = 10
   ```
 
 ---
@@ -72,10 +80,7 @@ activates_when = []
 [contributes]
 templates = [
     "GROVE.md.j2",
-    "plans/.gitkeep.j2",
-    "handoffs/.gitkeep.j2",
-    "handoffs/HANDOFF_TEMPLATE.md.j2",
-    "decisions/.gitkeep.j2",
+    "INDEX.md.j2",
 ]
 setup_questions = []
 ```
@@ -100,6 +105,12 @@ templates = [
 ]
 setup_questions = []
 
+[[contributes.injections]]
+id = "python-guidance"
+anchor = "guidance"
+source = "snippets/guidance.md.j2"
+order = 10
+
 [[contributes.rules]]
 paths = ["**/*.py", "tests/**", "src/**"]
 ```
@@ -112,7 +123,7 @@ paths = ["**/*.py", "tests/**", "src/**"]
   - **Project profile** — From the repo analyzer (e.g. `project_name`, `language`, `package_manager`, `test_framework`, `tools`, `raw`).
   - **Setup answers** — User answers to pack `setup_questions` (keyed by question id).
 - **Paths:** Template paths in `contributes.templates` are relative to the pack root. Destinations are under the install root (e.g. `.grove/`).
-- **Managed files:** Rendered files are recorded in the manifest; `grove sync` re-renders them from current profile and templates.
+- **Anchor-owned files:** Rendered files are recorded in the manifest; `grove sync` rebuilds `grove:anchor:*` regions from current profile and contributions while preserving `grove:user:*` regions.
 
 ---
 

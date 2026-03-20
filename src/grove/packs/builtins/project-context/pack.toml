@@ -1,0 +1,28 @@
+id = "project-context"
+name = "Project Context Pack"
+version = "0.1.0"
+depends_on = ["base"]
+compatible_with = []
+activates_when = []
+
+[contributes]
+templates = [
+    "docs/project-context.md.j2",
+]
+setup_questions = []
+
+[[contributes.injections]]
+id = "project-context-index-docs"
+target = "INDEX.md"
+anchor = "docs"
+content = """
+### Project Context
+
+High-level project scope, goals, and architecture notes for this repository.
+
+When to use: Use when you need the broad shape of the project before diving into details.
+
+Pointers:
+- `.grove/docs/project-context.md`
+"""
+order = 60

@@ -1,0 +1,28 @@
+id = "knowledge"
+name = "Knowledge Pack"
+version = "0.1.0"
+depends_on = ["base"]
+compatible_with = []
+activates_when = []
+
+[contributes]
+templates = [
+    "docs/knowledge.md.j2",
+]
+setup_questions = []
+
+[[contributes.injections]]
+id = "knowledge-index-docs"
+target = "INDEX.md"
+anchor = "docs"
+content = """
+### Project Knowledge
+
+Longer-lived reference notes for patterns, constraints, and known gotchas.
+
+When to use: Use when a detail should be available later without rereading code or issues.
+
+Pointers:
+- `.grove/docs/knowledge.md`
+"""
+order = 50
