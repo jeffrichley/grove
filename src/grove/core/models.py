@@ -30,6 +30,58 @@ class PackManifest(BaseModel):
         default_factory=dict,
         description="Templates, rules, setup_questions; structure defined per pack.",
     )
+    root_dir: Path | None = Field(
+        default=None,
+        description="Absolute pack root on disk for template resolution.",
+    )
+
+
+class InjectionSpec(BaseModel):
+    """One anchored snippet contribution from a pack."""
+
+    pack_id: str = Field(..., description="Pack that owns this injection.")
+    id: str = Field(..., description="Unique injection id across selected packs.")
+    target: str | None = Field(
+        default=None,
+        description="Optional target file relative to install root (e.g. 'GROVE.md').",
+    )
+    anchor: str = Field(..., description="Anchor name inside the target file.")
+    source: Path | None = Field(
+        default=None,
+        description=(
+            "Optional source template path relative to the contributing pack root."
+        ),
+    )
+    content: str | None = Field(
+        default=None,
+        description="Optional inline template content for the injection.",
+    )
+    order: int = Field(default=0, description="Deterministic ordering key.")
+
+
+class ToolHookSpec(BaseModel):
+    """One pack-owned tool integration output."""
+
+    pack_id: str = Field(..., description="Pack that owns this tool hook.")
+    id: str = Field(..., description="Unique hook id across selected packs.")
+    tool: str = Field(..., description="External tool id (e.g. 'codex').")
+    hook_type: str = Field(
+        ...,
+        description="Write/update strategy used to apply this hook.",
+    )
+    target: Path = Field(
+        ...,
+        description="Target path relative to the project root unless absolute.",
+    )
+    source: Path | None = Field(
+        default=None,
+        description="Optional source template path relative to the contributing pack.",
+    )
+    content: str | None = Field(
+        default=None,
+        description="Optional inline template content for the hook body.",
+    )
+    order: int = Field(default=0, description="Deterministic ordering key.")
 
 
 # ---------------------------------------------------------------------------
@@ -82,6 +134,10 @@ class PlannedFile(BaseModel):
     managed: bool = Field(
         default=True,
         description="Whether this file is managed by Grove (overwrite/sync).",
+    )
+    rendered_content: str | None = Field(
+        default=None,
+        description="Pre-rendered output for composition-aware files.",
     )
 
 

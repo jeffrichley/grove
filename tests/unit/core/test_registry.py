@@ -8,31 +8,43 @@ from grove.core.registry import discover_packs
 
 
 @pytest.mark.unit
-def test_discover_packs_returns_base_and_python_in_order() -> None:
-    """discover_packs() returns base and python when both present; base first."""
-    # Arrange - default builtins (base and python)
+def test_discover_packs_returns_phase2_pack_set_in_dependency_order() -> None:
+    """discover_packs() returns the Phase 2 builtins with base before dependents."""
+    # Arrange - default Phase 2 builtins
     # Act - discover_packs
     packs = discover_packs()
     ids = [p.id for p in packs]
-    # Assert - base and python present, base before python
-    assert "base" in ids
-    assert "python" in ids
-    assert ids.index("base") < ids.index("python")
+    # Assert - Phase 2 builtins are present and base loads before dependents
+    assert ids == [
+        "base",
+        "codex",
+        "commands",
+        "knowledge",
+        "memory",
+        "project-context",
+        "python",
+    ]
 
 
 @pytest.mark.unit
 def test_discover_packs_assert_metadata() -> None:
-    """Discovered Base and Python packs have expected metadata."""
+    """Discovered builtins expose expected metadata for core Phase 2 packs."""
     # Arrange - default builtins
     # Act - discover_packs
     packs = discover_packs()
     by_id = {p.id: p for p in packs}
     base = by_id["base"]
+    codex = by_id["codex"]
+    memory = by_id["memory"]
     python = by_id["python"]
-    # Assert - base and python metadata
+    # Assert - selected builtins have the expected metadata
     assert base.name == "Base Pack"
     assert base.version == "0.1.0"
     assert base.depends_on == []
+    assert codex.name == "Codex Integration Pack"
+    assert codex.depends_on == ["base"]
+    assert memory.name == "Memory Pack"
+    assert memory.depends_on == ["base"]
     assert python.name == "Python Pack"
     assert python.depends_on == ["base"]
     assert "python" in python.compatible_with

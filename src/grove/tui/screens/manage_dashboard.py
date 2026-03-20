@@ -12,6 +12,7 @@ from grove.core.add import add_pack
 from grove.core.manifest import save_manifest
 from grove.core.models import ProjectProfile
 from grove.core.registry import get_builtin_pack_roots_and_packs
+from grove.core.tool_hooks import apply_tool_hooks
 from grove.exceptions import GroveError
 from grove.tui.screens.base import GroveBaseScreen, _Bindings
 from grove.tui.screens.welcome import WelcomeScreen
@@ -259,8 +260,10 @@ class AddPackScreen(GroveBaseScreen):
                 pack_roots,
                 packs,
             )
+            profile = analyze(self._state.root)
+            apply_tool_hooks(self._state.root, updated, packs, profile)
             save_manifest(manifest_path, updated)
-        except GroveError as e:
+        except (GroveError, ValueError, KeyError) as e:
             self.app.notify(str(e), title="Add pack failed", severity="error")
             return
         self.app.notify(f"Added pack {pack_id}.", title="Pack installed")

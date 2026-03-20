@@ -4,7 +4,9 @@ from pathlib import Path
 
 from grove.analyzer import analyze
 from grove.core.composer import compose
+from grove.core.file_ops import render_planned_file
 from grove.core.manifest import load_manifest
+from grove.core.markers import MarkerRange, find_anchor_ranges, find_user_regions
 from grove.core.models import (
     ManifestState,
     PackManifest,
@@ -12,7 +14,7 @@ from grove.core.models import (
     ProjectProfile,
 )
 from grove.core.registry import get_builtin_pack_roots_and_packs
-from grove.core.renderer import render
+from grove.core.tool_hooks import apply_tool_hooks
 from grove.exceptions import GroveManifestError
 
 
@@ -32,39 +34,6 @@ def _rel_posix(planned: PlannedFile, install_root: Path) -> str:
         else planned.dst.relative_to(install_root)
     )
     return rel.as_posix()
-
-
-def _write_planned(
-    planned: PlannedFile,
-    install_root: Path,
-    pack_roots: dict[str, Path],
-) -> None:
-    """Render and write one planned file.
-
-    Args:
-        planned: File to render and write.
-        install_root: Install root path.
-        pack_roots: Map pack_id -> pack root path.
-
-    Raises:
-        KeyError: If planned.pack_id is not in pack_roots.
-    """
-    root = pack_roots.get(planned.pack_id)
-    if root is None:
-        raise KeyError(
-            f"Pack id '{planned.pack_id}' not in pack_roots; "
-            f"keys: {sorted(pack_roots.keys())}"
-        )
-    template_path = (root / planned.src).resolve()
-    content = render(template_path, planned.variables)
-    rel = (
-        planned.dst
-        if not planned.dst.is_absolute()
-        else planned.dst.relative_to(install_root)
-    )
-    dst = install_root / rel
-    dst.parent.mkdir(parents=True, exist_ok=True)
-    dst.write_text(content, encoding="utf-8")
 
 
 def sync_managed(
@@ -94,6 +63,7 @@ def sync_managed(
 
     Raises:
         KeyError: A pack_id in the plan is not in pack_roots.
+        ValueError: Anchor reconstruction is unsafe for an existing file.
     """
     install_root = Path(manifest.project.root) / (
         manifest.init_provenance.install_root if manifest.init_provenance else ".grove"
@@ -107,13 +77,17 @@ def sync_managed(
         rel_posix = _rel_posix(planned, install_root)
         if rel_posix not in generated_set:
             continue
+        dst = install_root / rel_posix
+        desired_content = render_planned_file(planned, pack_roots)
+        current_content = dst.read_text(encoding="utf-8") if dst.exists() else None
+        next_content = _sync_target_content(current_content, desired_content)
+        if current_content == next_content:
+            continue
         if dry_run:
             written.append(rel_posix)
             continue
-        try:
-            _write_planned(planned, install_root, pack_roots)
-        except KeyError:
-            raise
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_text(next_content, encoding="utf-8")
         written.append(rel_posix)
     return written
 
@@ -142,6 +116,148 @@ def run_sync(root: Path, dry_run: bool = False) -> list[str]:
     pack_roots, packs = get_builtin_pack_roots_and_packs()
     profile = analyze(root)
     try:
-        return sync_managed(manifest, pack_roots, profile, packs, dry_run=dry_run)
-    except KeyError as e:
+        written = sync_managed(manifest, pack_roots, profile, packs, dry_run=dry_run)
+        hook_writes = apply_tool_hooks(
+            root,
+            manifest,
+            packs,
+            profile,
+            dry_run=dry_run,
+        )
+        return written + [path for path in hook_writes if path not in written]
+    except (KeyError, ValueError) as e:
         raise GroveManifestError(str(e)) from e
+
+
+def _sync_target_content(current: str | None, desired: str) -> str:
+    """Return the content that sync should leave on disk for one file.
+
+    Args:
+        current: Existing file content, if the file is present.
+        desired: Newly composed desired file content.
+
+    Returns:
+        Content to write for this file.
+
+    Raises:
+        ValueError: Existing content lacks anchors required for safe reconstruction.
+    """
+    if current is None:
+        return desired
+    desired_with_users = _preserve_user_regions(current, desired)
+    desired_anchors = find_anchor_ranges(desired_with_users)
+    if not desired_anchors:
+        return desired_with_users
+    return _replace_anchor_bodies(current, desired_with_users, desired_anchors)
+
+
+def _preserve_user_regions(current: str, desired: str) -> str:
+    """Preserve user-region bodies from current content in desired content.
+
+    Args:
+        current: Existing file content on disk.
+        desired: Newly composed desired file content.
+
+    Returns:
+        Desired content with current user-region bodies preserved where possible.
+    """
+    current_users = find_user_regions(current)
+    desired_users = find_user_regions(desired)
+    output = desired
+    for region_id, desired_range in sorted(
+        desired_users.items(),
+        key=lambda item: item[1].start,
+        reverse=True,
+    ):
+        current_range = current_users.get(region_id)
+        if current_range is None:
+            continue
+        output = (
+            output[: _body_start(desired_range)]
+            + _body(current, current_range)
+            + output[_body_end(desired_range) :]
+        )
+    return output
+
+
+def _replace_anchor_bodies(
+    current: str,
+    desired: str,
+    desired_anchors: dict[str, MarkerRange],
+) -> str:
+    """Replace anchor bodies in an existing file while preserving outer content.
+
+    Args:
+        current: Existing file content on disk.
+        desired: Newly composed desired file content.
+        desired_anchors: Desired anchor ranges keyed by name.
+
+    Returns:
+        Existing file content with anchor bodies replaced from desired.
+
+    Raises:
+        ValueError: Existing content lacks anchors required for safe reconstruction.
+    """
+    current_anchors = find_anchor_ranges(current)
+    missing = sorted(
+        anchor_name
+        for anchor_name in desired_anchors
+        if anchor_name not in current_anchors
+    )
+    if missing:
+        raise ValueError(
+            "Anchor reconstruction is unsafe; missing anchor(s): " + ", ".join(missing)
+        )
+
+    output = current
+    for anchor_name, current_range in sorted(
+        current_anchors.items(),
+        key=lambda item: item[1].start,
+        reverse=True,
+    ):
+        desired_range = desired_anchors.get(anchor_name)
+        if desired_range is None:
+            continue
+        output = (
+            output[: _body_start(current_range)]
+            + _body(desired, desired_range)
+            + output[_body_end(current_range) :]
+        )
+    return output
+
+
+def _body(content: str, marker_range: MarkerRange) -> str:
+    """Return the content inside a marker pair.
+
+    Args:
+        content: File content to slice.
+        marker_range: Marker range describing the pair.
+
+    Returns:
+        Content between the start and end markers.
+    """
+    return content[_body_start(marker_range) : _body_end(marker_range)]
+
+
+def _body_start(marker_range: MarkerRange) -> int:
+    """Return the body start offset for an anchor or user range.
+
+    Args:
+        marker_range: Marker range to inspect.
+
+    Returns:
+        Absolute string offset immediately after the start marker.
+    """
+    return marker_range.start + len(marker_range.start_token)
+
+
+def _body_end(marker_range: MarkerRange) -> int:
+    """Return the body end offset for an anchor or user range.
+
+    Args:
+        marker_range: Marker range to inspect.
+
+    Returns:
+        Absolute string offset immediately before the end marker.
+    """
+    return marker_range.end - len(marker_range.end_token)
