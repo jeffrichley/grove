@@ -66,6 +66,7 @@ Optional top-level fields:
 - **`index_entries`** — Optional structured INDEX contributions rendered into `.grove/INDEX.md` sections such as `rules`, `commands`, `tools`, and `docs`.
 - **`tool_hooks`** — Optional tool-native shim outputs such as repo-root `AGENTS.md`. These are rendered by the generic tool hook pipeline and owned by the integration pack.
 - **`codex_skills`** — Optional Codex skill materialization entries for repo-local `.agents/skills/`. Use these in a Codex integration pack rather than storing skill bodies under `.grove/`.
+- **`doctor_checks`** — Optional pack-owned diagnostics. These let a pack declare correctness requirements that `grove doctor` should validate without hard-coding package-specific rules into core.
 
 ---
 
@@ -128,6 +129,63 @@ paths = ["**/*.py", "tests/**", "src/**"]
 - **Paths:** Template paths in `contributes.templates` are relative to the pack root. Destinations are under the install root (e.g. `.grove/`).
 - **Anchor-owned files:** Rendered files are recorded in the manifest; `grove sync` rebuilds `grove:anchor:*` regions from current profile and contributions while preserving `grove:user:*` regions.
 - **Tool integrations:** Tool-native files are owned by integration packs. For example, the built-in Codex integration pack contributes an `AGENTS.md` shim and materializes skills into `.agents/skills/`.
+
+---
+
+## Pack-owned doctor checks
+
+Packs can contribute `doctor_checks` so `grove doctor` validates package-specific invariants in addition to the generic manifest/drift/anchor checks.
+
+Current built-in check support:
+
+- **`skill_front_matter`** — Verify that a tool-consumed skill file exists, has parseable front matter, and includes required keys.
+
+Example:
+
+```toml
+[[contributes.doctor_checks]]
+id = "codex-planning-execution-front-matter"
+check_type = "skill_front_matter"
+path = ".agents/skills/planning-execution/SKILL.md"
+required_keys = ["name", "description"]
+description = "Codex planning skill must include valid front matter."
+```
+
+Guidance:
+
+- Keep checks tool- or pack-specific rather than encoding those invariants into Grove core.
+- Use stable `id` values so findings are easy to trace.
+- Point `path` at the concrete tool-facing output that `doctor` should validate.
+- Only declare checks that can run locally and read-only.
+
+---
+
+## Codex skill front matter contract
+
+The built-in Codex integration now expects each materialized `SKILL.md` to start with YAML-like front matter.
+
+Required keys today:
+
+- `name`
+- `description`
+
+Example:
+
+```markdown
+---
+name: planning-execution
+description: Plan work in phases and execute against the plan.
+---
+```
+
+`grove doctor` reports a failure when a declared skill:
+
+- is missing `SKILL.md`
+- has no front matter
+- has malformed front matter
+- omits a required key
+
+If your pack contributes Codex skills, make the template satisfy this contract so AI agents can consume the skill reliably.
 
 ---
 

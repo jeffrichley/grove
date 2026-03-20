@@ -23,7 +23,9 @@ See the [docs](docs/index.md) for the GROVE framework, CLI reference, and pack a
 - **`grove configure`** — Open setup: init TUI when no manifest; manage TUI (installed packs, add pack, re-run analysis, full re-setup) when manifest exists. Requires a TTY.
 - **`grove manage`** — Alias for `grove configure`.
 - **`grove add <pack>`** — Add a pack to an existing Grove installation (e.g. `grove add python`). Updates manifest and generated files.
+- **`grove remove <pack>`** — Remove one non-base pack from an existing Grove installation. Recomputes the remaining desired state, rewrites shared managed files, removes orphaned pack-owned outputs, and supports `--dry-run`.
 - **`grove sync`** — Re-render all managed files from current templates and profile. Use `--dry-run` to preview.
+- **`grove doctor`** — Run read-only diagnostics for manifest health, dependency coherence, managed-file drift, anchor safety, tool-hook targets, pack-local skills, and pack-owned checks such as Codex skill front matter validation.
 
 ## Development
 
@@ -31,5 +33,5 @@ See the [docs](docs/index.md) for the GROVE framework, CLI reference, and pack a
 - **Pre-commit** (run once per clone): `just pre-commit-install` (or `uv run pre-commit install` and `uv run pre-commit install --hook-type commit-msg`).
 - **Quality**: `just quality-check` (CI-safe, no writes) or `just quality` (format + fix + all checks); `just test-cov` (tests with coverage). Before commit/PR: `just quality && just test`.
 - **Docs**: `just docs-serve` to browse; `just docs-check` to validate (included in `just quality`).
-- **Pack authoring**: see [docs/pack-author-guide.md](docs/pack-author-guide.md) for `pack.toml`, templates, injections, tool hooks, and built-in pack layout.
+- **Pack authoring**: see [docs/pack-author-guide.md](docs/pack-author-guide.md) for `pack.toml`, templates, injections, tool hooks, `doctor_checks`, and built-in pack layout.
 - **Commit**: `just commit` for conventional commits via Commitizen.
